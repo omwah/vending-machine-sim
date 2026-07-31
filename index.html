@@ -1077,12 +1077,49 @@ body{
   filter:drop-shadow(0 0 14px rgba(242,247,255,.72)) drop-shadow(0 14px 12px rgba(0,0,0,.72))}
 .fx-staypuft::after{content:"";position:absolute;z-index:-1;left:50%;bottom:78px;width:330px;height:28px;
   transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.58),rgba(0,0,0,0) 72%)}
-.fx-staypuft svg{display:block;width:100%;height:100%;overflow:visible}
-.fx-staypuft.on{animation:staypuftmanifest 2.65s cubic-bezier(.2,.78,.25,1) both}
+.fx-staypuft svg{position:relative;z-index:1;display:block;width:100%;height:100%;overflow:visible}
+.fx-staypuft.on{animation:staypuftmanifest 4.9s cubic-bezier(.2,.78,.25,1) both}
+.fx-staypuft.on>svg{animation:staypuftchar 4.9s linear both}
+.fx-staypuft.on::after{animation:puftshadow 4.9s linear both}
 @keyframes staypuftmanifest{
   0%{opacity:0;transform:translateX(-50%) translateY(18px) scale(.72)}
-  18%,76%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
-  100%{opacity:0;transform:translateX(-50%) translateY(-5px) scale(1.03)}
+  10%,100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+}
+@keyframes staypuftchar{
+  0%,25%{opacity:1;filter:none;transform:scale(1)}
+  38%{filter:sepia(.35) saturate(.8) brightness(.82) contrast(1.12)}
+  58%{filter:grayscale(.72) sepia(.62) brightness(.48) contrast(1.48)}
+  72%,78%{opacity:1;filter:grayscale(1) sepia(.75) brightness(.25) contrast(1.9);transform:scale(1)}
+  84%,100%{opacity:0;filter:grayscale(1) brightness(.12) contrast(2);transform:scale(.96)}
+}
+@keyframes puftshadow{0%,72%{opacity:1}84%,100%{opacity:0}}
+.puft-flames,.puft-smoke{position:absolute;inset:0;pointer-events:none}
+.puft-flames{z-index:3}.puft-smoke{z-index:4}
+.puft-flames::before{content:"";position:absolute;left:21%;right:21%;top:18%;bottom:20%;opacity:0;border-radius:44%;
+  background:radial-gradient(ellipse at 50% 72%,rgba(255,50,0,.7),transparent 63%),
+    radial-gradient(ellipse at 38% 38%,rgba(255,176,24,.62),transparent 56%),
+    radial-gradient(ellipse at 66% 32%,rgba(255,92,8,.64),transparent 57%);
+  mix-blend-mode:screen;filter:blur(18px);animation:puftfirewash 3.25s .72s ease-in-out both}
+@keyframes puftfirewash{0%{opacity:0;transform:scale(.72)}18%,72%{opacity:.88;transform:scale(1.08)}100%{opacity:0;transform:scale(.94)}}
+.puft-flames i{position:absolute;left:50%;top:23%;width:600px;height:610px;margin-left:-300px;opacity:0;
+  transform-origin:50% 100%;
+  filter:drop-shadow(0 0 20px rgba(255,98,12,.98));animation:puftflame 3.25s .78s ease-in-out both}
+.puft-flames i svg{display:block;width:100%;height:100%;overflow:visible}
+@keyframes puftflame{
+  0%{opacity:0;transform:translateY(90px) scale(.76,.18)}
+  14%{opacity:.98;transform:translateY(0) scale(1)}
+  30%{transform:translateY(-13px) scale(1.03,1.08) skewX(-1.5deg)}
+  48%{transform:translateY(3px) scale(.98,.95) skewX(1.5deg)}
+  68%{opacity:1;transform:translateY(-18px) scale(1.04,1.1) skewX(-1deg)}
+  100%{opacity:0;transform:translateY(-68px) scale(.88,1.16) skewX(1deg)}
+}
+.puft-smoke i{position:absolute;left:var(--x);top:var(--y);width:108px;height:82px;border-radius:50%;opacity:0;
+  background:radial-gradient(circle at 38% 34%,#dad8d1 0 18%,#77746e 48%,rgba(35,34,32,.15) 72%,transparent 74%);
+  filter:blur(2px) drop-shadow(0 0 9px rgba(70,67,62,.48));animation:puftsmoke 1.25s var(--d) ease-out both}
+@keyframes puftsmoke{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.18)}
+  18%{opacity:.92}
+  100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(var(--s))}
 }
 .fx-gremlin{position:absolute;right:-104px;top:211px;width:142px;height:184px;opacity:0;
   filter:drop-shadow(0 14px 12px rgba(0,0,0,.8));transform:translateX(0) rotate(8deg)}
@@ -1145,6 +1182,8 @@ body{
   .fx-stolen-item{animation:none!important;opacity:1;transform:translate(var(--hand-x),var(--hand-y))}
   .fx-ghost.on{animation:none!important;opacity:.54}
   .fx-staypuft.on{animation:none!important;opacity:1;transform:translateX(-50%) scale(1)}
+  .fx-staypuft.on>svg,.fx-staypuft.on::after{animation:none!important}
+  .puft-flames,.puft-smoke{display:none!important}
 }
 
 /* ---------- narrow / mobile ---------- */
@@ -2064,7 +2103,7 @@ const SECRET_COMMANDS={
   "300":{title:"BACHELOR CHOW",texts:["NOW WITH FLAVOR!","MAKES ITS OWN GRAVY!"],event:"rocket",duration:4800},
   "202":{title:"NUTRITION RECORD",text:"THE LAST CUSTOMER NEVER LEFT",event:"glass",duration:6000},
   "969":{title:"INCIDENT REPORT",text:"THE FOOTSTEPS NUMBER FIVE",event:"ghost",duration:3100},
-  "100":{title:"MANIFESTATION",text:"IT BORROWED THE CHOSEN SHAPE",event:"shudder"},
+  "100":{title:"BY THE FIRE AT\nCAMP WAUCONDA",text:"IT BORROWED THE CHOSEN SHAPE",event:"shudder",duration:6000},
   "000":{title:"FOLLOW CARE\nINSTRUCTIONS",text:"IT WAS NEVER FED. IT STILL GREW.",event:"rear",duration:4700},
   "808":{title:"AGRONOMY LOG",text:"THE SOIL REFUSED TO DRINK",event:"plant"}
 };
@@ -2084,7 +2123,29 @@ async function runSecretCommand(code){
       scope.cls(machineEl,"fx-shudder");
       const puftTimer=setTimeout(()=>{
         const puft=document.createElement("div");puft.className="fx-staypuft on";
-        puft.innerHTML=STAY_PUFT_SVG;scope.node(fxFront,puft);
+        puft.innerHTML=STAY_PUFT_SVG;
+        const flames=document.createElement("div");flames.className="puft-flames";
+        const flame=document.createElement("i");
+        flame.innerHTML=`<svg viewBox="0 0 600 620" aria-hidden="true">
+          <defs><linearGradient id="wideFireOuter" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff7a5"/><stop offset=".3" stop-color="#ffd331"/>
+            <stop offset=".66" stop-color="#ff7114"/><stop offset="1" stop-color="#b91608"/>
+          </linearGradient><linearGradient id="wideFireInner" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fffde0"/><stop offset=".52" stop-color="#ffe34c"/>
+            <stop offset="1" stop-color="#ff8a16"/>
+          </linearGradient></defs>
+          <path fill="url(#wideFireOuter)" d="M105 592C75 535 70 475 92 421C45 396 55 331 98 277C91 341 128 326 139 236C148 166 181 121 205 62C211 157 230 200 259 139C277 101 284 66 289 22C318 91 315 170 343 145C366 124 375 73 383 42C409 119 402 215 438 178C464 151 467 119 475 89C494 184 488 286 518 247C541 218 548 190 552 164C571 270 566 348 524 412C556 473 539 542 493 592C390 616 205 616 105 592Z"/>
+          <path fill="url(#wideFireInner)" d="M158 568C137 517 141 466 168 422C137 389 151 342 189 300C185 354 217 345 228 275C237 219 260 180 278 144C281 214 298 246 319 205C338 168 347 128 352 92C371 154 366 235 395 211C418 192 425 166 432 139C448 220 444 303 469 276C487 256 495 236 500 216C516 311 505 377 481 423C505 472 491 525 454 568C366 590 245 590 158 568Z"/>
+        </svg>`;
+        flames.appendChild(flame);
+        const smoke=document.createElement("div");smoke.className="puft-smoke";
+        [[27,24,-90,-95,1.7,3.65],[42,18,-35,-120,2,3.72],[58,22,34,-126,1.85,3.61],
+          [73,28,96,-88,1.7,3.77],[22,45,-112,-48,1.95,3.82],[40,43,-48,-78,2.2,3.68],
+          [58,46,48,-72,2.1,3.8],[78,48,116,-42,1.9,3.7],[32,65,-84,-28,2,3.75],
+          [50,62,0,-58,2.35,3.62],[68,67,86,-24,2,3.84],[50,34,4,-105,2.4,3.9]]
+          .forEach(([x,y,dx,dy,s,d])=>{const puff=document.createElement("i");
+            puff.style.cssText=`--x:${x}%;--y:${y}%;--dx:${dx}px;--dy:${dy}px;--s:${s};--d:${d}s`;smoke.appendChild(puff);});
+        puft.append(flames,smoke);scope.node(fxFront,puft);
       },1000);
       scope.cleanups.push(()=>clearTimeout(puftTimer));
     }
