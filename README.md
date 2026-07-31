@@ -8,7 +8,7 @@ slot code! Watch the coil turn! Push the tray door open and grab your snack.
 ## Run it
 
 ```
-Open vending_machine_sim.html in any modern browser.
+Open index.html in any modern browser.
 ```
 
 That's it — double-click the file, or drag it into a browser window. It works from `file://` with
