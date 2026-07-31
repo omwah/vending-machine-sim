@@ -197,17 +197,17 @@ body{
 .itemholder.pushing{transform:translateY(7px) scale(1.045) rotate(1.5deg)}
 /* shelf front rail with price/code tags */
 .rail{
-  position:relative;height:16px;flex:0 0 16px;z-index:5;
+  position:relative;height:19px;flex:0 0 19px;z-index:5;
   background:linear-gradient(180deg,#2b2723,#141210 60%,#000);
   box-shadow:0 2px 5px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.14);
   display:flex;align-items:center;padding:0 2px;
 }
 .tag{
   flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;
-  font:700 9px/1 "Arial Narrow",Arial,sans-serif;color:#f2f2ef;letter-spacing:.5px;
+  font:700 11px/1 "Arial Narrow",Arial,sans-serif;color:#f2f2ef;letter-spacing:.5px;
   text-shadow:0 1px 1px #000;
 }
-.tag .price{color:#fff;font-weight:700;font-size:8px}
+.tag .price{color:#fff;font-weight:700;font-size:10px}
 .tag.out .code,.tag.out .price{color:#9a8d80;opacity:.65}
 .tag .sel{
   padding:1px 3px;border-radius:2px;
@@ -404,7 +404,9 @@ body{
 #billsticker .txt{font:800 13px/1 Arial;color:#0a2222;letter-spacing:.5px;text-align:center}
 #billsticker .txt em{display:block;font-style:normal;color:#fff;font-size:15px;
   text-shadow:0 1px 1px rgba(0,0,0,.35)}
-#billsticker .demo{position:absolute;left:6px;top:5px;animation:billpush 2.6s ease-in-out infinite}
+#billsticker .demo{position:absolute;left:6px;top:5px}
+/* opt-in hook for a future machine event; ordinary bill insertion stays static */
+#billsticker.fx-animate-bill .demo{animation:billpush 2.6s ease-in-out infinite}
 @keyframes billpush{0%,15%{transform:translateX(0);opacity:1}60%{transform:translateX(26px);opacity:.15}
   61%,100%{transform:translateX(0);opacity:1}}
 #billslot{position:relative;height:13px;margin-top:5px;border-radius:2px;
