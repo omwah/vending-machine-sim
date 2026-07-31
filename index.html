@@ -2190,7 +2190,8 @@ const SECRET_COMMANDS={
   "969":{title:"INCIDENT REPORT",text:"THE FOOTSTEPS NUMBER FIVE",event:"ghost",duration:3100},
   "100":{title:"BY THE FIRE AT\nCAMP WAUCONDA",text:"IT BORROWED THE CHOSEN SHAPE",event:"shudder",duration:6000},
   "000":{title:"FOLLOW CARE\nINSTRUCTIONS",text:"IT WAS NEVER FED. IT STILL GREW.",event:"rear",duration:4700},
-  "808":{title:"I know shit's bad\nright now",text:"I GOT A SOLUTION!",event:"camacho",duration:5400}
+  "808":{titles:["Water? Like out\nof the toilet?","If you don't smoke\nTarryltons... Fuck You!","I like money."],
+    text:"I GOT A SOLUTION!",event:"camacho",duration:5400}
 };
 async function runSecretCommand(code){
   const cmd=SECRET_COMMANDS[code];if(!cmd||!META.discovered.includes(code))return false;
@@ -2200,9 +2201,10 @@ async function runSecretCommand(code){
     scope.cleanups.push(()=>{collectionSuppressed=false;collectionEl.classList.remove("on");});
     const variants=cmd.texts||[cmd.text],replayCount=Number(META.commandReplay[code])||0;
     const loreText=variants[replayCount%variants.length];
+    const titleVariants=cmd.titles||[cmd.title],vfdTitle=titleVariants[replayCount%titleVariants.length];
     const eventDuration=cmd.duration||3700;
     META.commandReplay[code]=replayCount+1;saveMeta();
-    setVFD(cmd.title,0,1);lcdMsg(loreText,eventDuration-100);sfx.ghost();
+    setVFD(vfdTitle,0,1);lcdMsg(loreText,eventDuration-100);sfx.ghost();
     if(cmd.event==="glass")scope.cls(glassEl,cmd.duration?"fx-sickly-long":"fx-sickly");
     if(cmd.event==="shudder"){
       scope.cls(machineEl,"fx-shudder");
