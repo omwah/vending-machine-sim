@@ -420,7 +420,11 @@ body{
   background:#4af;box-shadow:0 0 7px #4af}
 
 /* ---------- big round lights 1 / 2 / 3 ---------- */
-.lightrow{width:100%;display:flex;align-items:center;gap:10px}
+.lightrow{position:relative;width:100%;display:flex;align-items:center;justify-content:center;padding:9px;
+  border-radius:12px;background:linear-gradient(180deg,#d3c8a7,#b9ae8b);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -3px 6px rgba(0,0,0,.2),
+             0 2px 5px rgba(0,0,0,.22)}
+.lightrow>.bigbtn{position:absolute;left:9px}
 .bigbtn{
   position:relative;width:44px;height:44px;flex:0 0 44px;border-radius:50%;cursor:pointer;
   border:none;display:grid;place-items:center;
@@ -439,7 +443,7 @@ body{
              inset 0 -3px 6px rgba(0,0,0,.3), inset 0 3px 8px rgba(255,255,255,.5);
 }
 .bigbtn:active{transform:translateY(1px)}
-.bigwrap{position:relative;width:100%;display:flex;justify-content:center}
+.bigwrap{position:relative;width:100%;display:flex;justify-content:flex-start}
 
 /* coin slot */
 #coinslot{
@@ -458,6 +462,7 @@ body{
   background:linear-gradient(180deg,#d3c8a7,#b9ae8b);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -3px 6px rgba(0,0,0,.2),
              0 2px 5px rgba(0,0,0,.22)}
+#keypadblock>.bigwrap{margin-bottom:7px}
 #keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .key{
   position:relative;aspect-ratio:1/1;border-radius:50%;border:none;cursor:pointer;
@@ -487,9 +492,11 @@ body{
 #okkey .chk{margin-right:6px;font-size:12px;opacity:.9}
 
 /* ---------- coin return ---------- */
-#returnwrap{width:100%;border-radius:8px;padding:8px;
-  background:linear-gradient(180deg,#cdc2a1,#b6ab88);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 2px 4px rgba(0,0,0,.2)}
+#returnwrap{width:100%;border-radius:12px;padding:9px;
+  background:linear-gradient(180deg,#d3c8a7,#b9ae8b);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -3px 6px rgba(0,0,0,.2),
+             0 2px 5px rgba(0,0,0,.22)}
+#returnwrap>.bigwrap{margin-bottom:7px}
 #cointray{
   position:relative;height:38px;border-radius:3px 3px 8px 8px;cursor:pointer;
   background:linear-gradient(180deg,#0d0c0b,#2b2823 30%,#d7ccae 32%,#b3a884);
@@ -1242,8 +1249,8 @@ body{
       </div>
 
       <!-- light 2 + keypad -->
-      <div class="bigwrap"><button class="bigbtn" id="light2" aria-label="Indicator 2">2</button></div>
       <div id="keypadblock">
+        <div class="bigwrap"><button class="bigbtn" id="light2" aria-label="Indicator 2">2</button></div>
         <div id="keypad">
           <button class="key" data-k="1">1</button><button class="key" data-k="2">2</button>
           <button class="key" data-k="3">3</button><button class="key" data-k="4">4</button>
@@ -1257,11 +1264,9 @@ body{
         <button id="okkey"><span class="chk">&#10004;</span>OK</button>
       </div>
 
-      <!-- light 3 -->
-      <div class="bigwrap"><button class="bigbtn" id="light3" aria-label="Indicator 3">3</button></div>
-
-      <!-- coin return -->
+      <!-- light 3 + coin return -->
       <div id="returnwrap">
+        <div class="bigwrap"><button class="bigbtn" id="light3" aria-label="Indicator 3">3</button></div>
         <div style="position:relative">
           <div id="coinbtn" title="Coin return"></div>
           <div id="cointray" role="button" tabindex="0" aria-label="Coin return tray"></div>
@@ -1603,7 +1608,10 @@ const stickerZoom=$("#stickerzoom"), stickerZoomCard=$("#stickerzoomcard");
 const collectionEl=$("#collection"),collectionPanel=$("#collectionpanel"),collectionGrid=$("#collectiongrid");
 let scale=1;
 
-function setMode(mode){S.mode=mode;S.busy=!["idle","transaction","awaitingPickup"].includes(mode);renderHUD();}
+function setMode(mode){
+  S.mode=mode;S.busy=!["idle","transaction","awaitingPickup"].includes(mode);renderHUD();
+  syncCascade();
+}
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 class EffectScope{
   constructor(){this.nodes=[];this.classes=[];this.cleanups=[];this.cancelled=false;}
@@ -1914,7 +1922,7 @@ function setVFD(txt,holdMs,alert){
   vfd.textContent=txt;
   if(alert){ vfd.classList.remove("alert"); void vfd.offsetWidth; vfd.classList.add("alert"); }
   clearTimeout(vfdHold);
-  if(holdMs) vfdHold=setTimeout(()=>{vfdHold=null;refreshVFD();},holdMs);
+  if(holdMs) vfdHold=setTimeout(()=>{vfdHold=null;refreshVFD();syncCascade();},holdMs);
   else vfdHold=null;
 }
 function refreshVFD(){
@@ -1939,18 +1947,33 @@ setInterval(()=>{ if(S.mode==="idle"&&!vfdHold && !S.entry && !S.credit && !S.ca
 refreshVFD();
 
 /* ============================================================
-   6. LIGHT CASCADE  (1 → 2 → keypad → OK → 3, hold, repeat)
+   6. LIGHT CASCADE  (1 → 2 → keypad rows → OK → 3, hold, repeat)
    ============================================================ */
 const light1=$("#light1"), light2=$("#light2"), light3=$("#light3");
 const keys=[...document.querySelectorAll(".key")], okKey=$("#okkey");
-const cascade=[[light1],[light2],keys,[okKey],[light3]];
-let ci=0, holding=false;
+const keypadRows=[keys.slice(0,3),keys.slice(3,6),keys.slice(6,9),keys.slice(9,12)];
+const cascade=[[light1],[light2],...keypadRows,[okKey],[light3]];
+let ci=0,holding=false,cascadePaused=false,cascadeResetTimer=null;
+const cascadeIsIdle=()=>S.mode==="idle"&&!S.entry&&!S.credit&&!S.cardSession&&!S.trayItem&&!vfdHold;
+function darkenCascade(){
+  clearTimeout(cascadeResetTimer);cascadeResetTimer=null;
+  cascade.flat().forEach(e=>e.classList.remove("lit"));ci=0;holding=false;
+}
+function pauseCascadeForInput(){cascadePaused=true;darkenCascade();}
+function syncCascade(){
+  if(!cascadeIsIdle()){darkenCascade();return;}
+  if(cascadePaused)cascadePaused=false;
+}
+function lightPressedControl(el){
+  if(!cascadePaused||!el)return;
+  el.classList.add("lit");setTimeout(()=>{if(cascadePaused)el.classList.remove("lit");},180);
+}
 function stepCascade(){
-  if(holding) return;
+  if(cascadePaused||holding||!cascadeIsIdle()) return;
   if(ci<cascade.length){
     cascade[ci].forEach(e=>e.classList.add("lit")); ci++;
     if(ci===cascade.length){ holding=true;
-      setTimeout(()=>{ cascade.flat().forEach(e=>e.classList.remove("lit")); ci=0; holding=false; },1300); }
+      cascadeResetTimer=setTimeout(()=>{darkenCascade();},1300); }
   }
 }
 setInterval(stepCascade,430);
@@ -2132,10 +2155,12 @@ function endCard(){
    ============================================================ */
 function press(el){ el.classList.add("press"); setTimeout(()=>el.classList.remove("press"),110); }
 keys.forEach(k=>k.addEventListener("click",()=>{ press(k); keyIn(k.dataset.k); }));
-okKey.addEventListener("click",()=>{ sfx.ok(); doOK(); });
+okKey.addEventListener("click",()=>{ lightPressedControl(okKey);sfx.ok();doOK(); });
 
 function keyIn(k){
   if(S.busy) return;
+  pauseCascadeForInput();
+  lightPressedControl(keys.find(key=>key.dataset.k===k));
   if(k==="C"){ S.entry=""; sfx.key(); highlight(); setVFD("CLEARED",700); return; }
   if(k==="R"){ coinReturn(); return; }
   sfx.key();
@@ -2388,7 +2413,7 @@ addEventListener("keydown",e=>{
   if(reveal.classList.contains("on")){ closeReveal(); return; }
   if(/^[0-9]$/.test(e.key)){
     const k=[...keys].find(x=>x.dataset.k===e.key); if(k){press(k);keyIn(e.key);}
-  }else if(e.key==="Enter"){ press(okKey); sfx.ok(); doOK(); }
+  }else if(e.key==="Enter"){press(okKey);lightPressedControl(okKey);sfx.ok();doOK();}
   else if(e.key==="Escape"){
     const hudPanel=$("#hud");
     if(!hudPanel.classList.contains("hidden"))hudPanel.classList.add("hidden");
