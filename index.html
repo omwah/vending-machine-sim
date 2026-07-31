@@ -986,10 +986,17 @@ body{
 #collectionclose{border:0;border-radius:7px;padding:7px 10px;cursor:pointer;background:#d6cbae;color:#241a12;
   font:800 11px/1 Arial}
 #collectiongrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(154px,1fr));gap:14px}
-.collection-card{min-height:218px;border-radius:10px;padding:13px 10px 10px;text-align:center;cursor:zoom-in;
+.collection-card{position:relative;min-height:218px;border-radius:10px;padding:13px 10px 10px;text-align:center;cursor:zoom-in;
   background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.025));
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
 .collection-card:focus-visible{outline:3px solid #f0c96b;outline-offset:2px}
+.collection-trash{position:absolute;z-index:60;right:7px;top:7px;width:29px;height:29px;padding:5px;border:0;
+  border-radius:7px;display:grid;place-items:center;cursor:pointer;color:#f5ded8;background:rgba(111,30,24,.92);
+  box-shadow:0 3px 8px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.16)}
+.collection-trash:hover{background:#a22e25}.collection-trash:active{transform:translateY(1px)}
+.collection-trash:focus-visible{outline:3px solid #f0c96b;outline-offset:2px}
+.collection-trash svg{display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .collection-art{position:relative;width:112px;height:142px;margin:0 auto 10px;display:grid;place-items:end center}
 .collection-art .pk{position:relative;width:var(--gallery-w,112px)!important;height:var(--gallery-h,142px)!important;filter:drop-shadow(0 8px 8px rgba(0,0,0,.55));
   transform:rotate(var(--empty-rot,-3deg)) scale(.95,.88);transform-origin:50% 100%}
@@ -1416,7 +1423,7 @@ body{
     <div id="collectionhead"><h2 id="collectiontitle">SNACK COLLECTION</h2>
       <button id="collectionclose" type="button">CLOSE</button></div>
     <div id="collectiongrid"></div>
-    <div id="collectionempty">No empty packages yet.<br>Retrieve a snack to add it here.</div>
+    <div id="collectionempty">Purchase a snack to add it here.</div>
   </div>
 </div>
 
@@ -2254,10 +2261,16 @@ function renderCollection(){
     .map(([id,saved])=>({id,saved,it:ITEMS[saved.code]||Object.values(ITEMS).find(it=>it.id===id)}))
     .filter(entry=>entry.it&&entry.saved.count>0)
     .sort((a,b)=>a.it.code.localeCompare(b.it.code))
-    .forEach(({saved,it})=>{
+    .forEach(({id,saved,it})=>{
       const card=document.createElement("article");card.className="collection-card";
       card.setAttribute("role","button");card.setAttribute("tabindex","0");
       card.setAttribute("aria-label","Magnify "+it.name);
+      const trash=document.createElement("button");trash.className="collection-trash";trash.type="button";
+      trash.setAttribute("aria-label","Remove one "+it.name+" from collection");
+      trash.title="Remove one";
+      trash.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>';
+      trash.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();removeCollectionItem({id});});
+      trash.addEventListener("keydown",e=>e.stopPropagation());
       const art=document.createElement("div");art.className="collection-art";art.innerHTML=it.art();
       const pk=art.firstElementChild;
       const artScale=Math.min(112/it.w,142/it.h),gw=it.w*artScale,gh=it.h*artScale;
@@ -2272,7 +2285,7 @@ function renderCollection(){
       const name=document.createElement("div");name.className="name";name.textContent=it.name;
       const count=document.createElement("div");count.className="count";
       count.textContent=saved.count===1?"1 EMPTY PACKAGE":saved.count+" EMPTY PACKAGES";
-      card.append(art,name,count);
+      card.append(trash,art,name,count);
       card.addEventListener("click",()=>openCollectionItem(card));
       card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){
         e.preventDefault();e.stopPropagation();openCollectionItem(card);
@@ -2284,6 +2297,7 @@ function openCollectionItem(card){
   if(!card)return;
   stickerSource=card;stickerZoomCard.innerHTML="";
   const clone=card.cloneNode(true);clone.classList.add("collection-card-zoom");
+  clone.querySelector(".collection-trash")?.remove();
   clone.removeAttribute("role");clone.removeAttribute("tabindex");clone.removeAttribute("aria-label");
   clone.setAttribute("aria-hidden","true");stickerZoomCard.appendChild(clone);
   stickerZoom.classList.add("on");
