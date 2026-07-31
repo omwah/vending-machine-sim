@@ -284,7 +284,7 @@ body{
   position:absolute;left:0;right:0;bottom:6px;text-align:center;
   font:700 9px/1 Arial;letter-spacing:2px;color:#6e6449;opacity:.75;transition:color .2s}
 #door.ready .push{color:#8a6510;opacity:1}
-#door.pushed{transform:rotateX(-62deg)}
+#door.pushed{transform:rotateX(62deg)}
 #door.ready::after{
   content:"";position:absolute;inset:-3px;border-radius:6px;pointer-events:none;
   box-shadow:0 0 0 2px rgba(255,210,58,.9), 0 0 26px rgba(255,210,58,.6);
@@ -1614,7 +1614,7 @@ function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify(META));}cat
 const $ = s => document.querySelector(s);
 const shelvesEl=$("#shelves"), vfd=$("#vfd"), fx=$("#fxglass"), stage=$("#stage");
 const glassEl=$("#glass");
-const doorEl=$("#door"), bayItem=$("#bayitem"), doorLabel=$("#door .push");
+const doorEl=$("#door"), bayItem=$("#bayitem");
 const coinTray=$("#cointray"), lcd=$("#lcd"), lcdStatus=$("#lcdstatus");
 const machineEl=$("#machine"), fxRear=$("#fxrear"), fxFront=$("#fxfront");
 const stickerZoom=$("#stickerzoom"), stickerZoomCard=$("#stickerzoomcard");
@@ -2285,7 +2285,7 @@ async function vend(it,change){
     pk.style.width=bw+"px"; pk.style.height=(bw*it.h/it.w)+"px";
     pk.style.setProperty("--u",(bw/it.w)+"px");pk.style.transform="rotate(-6deg)";
     bayItem.classList.add("show");S.trayItem=it.code;
-    doorEl.classList.add("ready");doorLabel.textContent="PUSH TO TAKE ITEM";
+    doorEl.classList.add("ready");
     if(change>0)dropChange(change);
     S.entry="";highlight();S.bought++;discoverClue(it);setMode("awaitingPickup");
     setVFD(change>0?"CHANGE "+money(change)+"\nPUSH TRAY":"THANK YOU\nPUSH TRAY",2600);
@@ -2363,7 +2363,7 @@ function retrieve(){
   collectSnack(it);
   S.trayItem=null;
   bayItem.classList.remove("show"); bayItem.innerHTML="";
-  doorEl.classList.remove("ready"); doorLabel.textContent="PUSH";
+  doorEl.classList.remove("ready");
   setTimeout(releaseDoor,420);
   revealItem.innerHTML=active&&active.trayArt?active.trayArt():it.art();
   let rh=Math.min(innerHeight*.54,440), rw=rh*it.w/it.h;
