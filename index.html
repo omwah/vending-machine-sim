@@ -1052,10 +1052,25 @@ body{
 @keyframes gremlinvisit{0%{opacity:0;transform:translateX(0) rotate(8deg)}14%,62%{opacity:1;transform:translateX(-164px) rotate(-3deg)}
   70%{opacity:1;transform:translateX(-164px) rotate(0) scale(1.06)}82%{opacity:1;transform:translateX(-164px) rotate(4deg)}
   100%{opacity:0;transform:translateX(20px) rotate(13deg)}}
-.fx-crumb{position:absolute;width:9px;height:8px;border-radius:45%;background:#6d3517;z-index:8;
-  box-shadow:inset 1px 1px 0 #d7923e;animation:crumbfall .9s ease-in forwards}
+.fx-stolen-item{position:absolute;left:0;top:0;z-index:4;filter:drop-shadow(0 5px 5px rgba(0,0,0,.85));
+  animation:gremlingrab 4.5s cubic-bezier(.2,.72,.28,1) both}
+.fx-stolen-item .pk{width:100%;height:100%;transform:rotate(-8deg)}
+@keyframes gremlingrab{
+  0%,18%{opacity:0;transform:translate(var(--wallet-x),var(--wallet-y)) scale(.25) rotate(-18deg)}
+  23%{opacity:1;transform:translate(var(--wallet-x),var(--wallet-y)) scale(.42) rotate(-14deg)}
+  52%,82%{opacity:1;transform:translate(var(--hand-x),var(--hand-y)) scale(1) rotate(0)}
+  100%{opacity:0;transform:translate(var(--exit-x),var(--exit-y)) scale(.9) rotate(15deg)}
+}
+.fx-crumb{position:absolute;width:18px;height:15px;border-radius:48% 42% 52% 38%;z-index:8;
+  background:
+    radial-gradient(circle at 31% 27%,var(--bite-accent) 0 12%,transparent 14%),
+    linear-gradient(135deg,var(--bite-mid),var(--bite-dark) 62%,var(--bite-accent));
+  clip-path:polygon(8% 20%,31% 3%,55% 12%,78% 2%,96% 28%,86% 54%,94% 79%,65% 96%,42% 84%,16% 94%,2% 65%);
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.18),0 2px 3px rgba(0,0,0,.7);animation:crumbfall .9s ease-in forwards}
 @keyframes crumbfall{to{transform:translate(var(--crumb-x),var(--crumb-y)) rotate(var(--crumb-r));opacity:.25}}
-.pk.fx-torn{clip-path:polygon(0 0,43% 0,47% 8%,54% 1%,61% 9%,67% 0,100% 0,100% 100%,0 100%)}
+.pk.fx-torn{
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 0H41C41 8 47 13 52 8C57 3 62 7 61 14C61 21 68 25 73 19C77 14 81 10 84 0H100V100H0Z'/%3E%3C/svg%3E") center/100% 100% no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill='white' d='M0 0H41C41 8 47 13 52 8C57 3 62 7 61 14C61 21 68 25 73 19C77 14 81 10 84 0H100V100H0Z'/%3E%3C/svg%3E") center/100% 100% no-repeat}
 .fx-stream{position:absolute;width:9px;border-radius:50% 50% 30% 30%;z-index:8;
   background:linear-gradient(90deg,#0759bd,#40bcff 48%,#06366f);transform-origin:top;
   animation:pourstream 1.25s ease-in-out both}
@@ -1087,6 +1102,7 @@ body{
   .itemholder.fx-scared,.itemholder.fx-faint,.itemholder.fx-puff,#machine.fx-shudder,
   .fx-plant,.fx-rocket{animation-duration:.01ms!important}
   .fx-gremlin.on{animation:none!important;opacity:1;transform:translateX(-164px) rotate(0)}
+  .fx-stolen-item{animation:none!important;opacity:1;transform:translate(var(--hand-x),var(--hand-y))}
 }
 
 /* ---------- narrow / mobile ---------- */
@@ -1484,7 +1500,7 @@ const SHELVES = [
   [ // 2xx — chips & popcorn
     {id:"after-midnight",effectId:"midnight",clueId:"000",code:"201",price:125,name:"After Midnight Bites",w:88,h:90,
       art:()=>bag({brand:"AFTER",bs:14,flav:"MIDNIGHT BITES — Keep Dry",c1:"#16131f",c2:"#0c0a11",c3:"#030204",tc:"#b7e34c",fc:"#ef4b42",food:["cracker","nut"],n:9,po:{w:29},oz:"2.0"}),
-      trayArt:()=>{const wrap=document.createElement("div");wrap.innerHTML=bag({brand:"AFTER",bs:14,flav:"MIDNIGHT BITES — TORN OPEN",c1:"#16131f",c2:"#0c0a11",c3:"#030204",tc:"#b7e34c",fc:"#ef4b42",food:["cracker","nut"],n:9,po:{w:29},oz:"2.0"});wrap.firstElementChild.classList.add("fx-torn");return wrap.innerHTML;}},
+      trayArt:()=>{const wrap=document.createElement("div");wrap.innerHTML=bag({brand:"AFTER",bs:14,flav:"MIDNIGHT BITES — Keep Dry",c1:"#16131f",c2:"#0c0a11",c3:"#030204",tc:"#b7e34c",fc:"#ef4b42",food:["cracker","nut"],n:9,po:{w:29},oz:"2.0"});wrap.firstElementChild.classList.add("fx-torn");return wrap.innerHTML;}},
     {id:"brawndo",effectId:"brawndo",clueId:"808",code:"203",price:125,name:"Brawndo",w:88,h:90,
       art:()=>pouch({brand:"BRAWNDO<br>THE THIRST MUTILATOR",food:["jelly b","jelly g"],n:9,
         po:{w:28,ar:1.8},c1:"#1478d4",c2:"#06367d",tc:"#efff42"})},
@@ -1584,6 +1600,20 @@ function collectSnack(it){
   const saved=COLLECTION.items[it.id]||{code:it.code,count:0};
   saved.code=it.code;saved.count++;COLLECTION.items[it.id]=saved;saveCollection();
   if(document.getElementById("collection")?.classList.contains("on"))renderCollection();
+}
+function chooseCollectionItem(){
+  const owned=Object.entries(COLLECTION.items)
+    .map(([id,saved])=>({id,saved,it:ITEMS[saved.code]||Object.values(ITEMS).find(it=>it.id===id)}))
+    .filter(({saved,it})=>it&&saved.count>0);
+  return owned.length?owned[Math.floor(Math.random()*owned.length)]:null;
+}
+function removeCollectionItem(entry){
+  const saved=entry&&COLLECTION.items[entry.id];if(!saved||saved.count<=0)return false;
+  saved.count--;
+  if(saved.count<=0)delete COLLECTION.items[entry.id];
+  saveCollection();
+  if(document.getElementById("collection")?.classList.contains("on"))renderCollection();
+  return true;
 }
 
 /* ============================================================
@@ -1852,10 +1882,17 @@ function makeDrops(ctx,count=7){
 }
 function makeCrumbs(ctx,count=11){
   const hr=ctx.holder.getBoundingClientRect(),gr=glassEl.getBoundingClientRect();
+  const palettes=[
+    {dark:"#ac600c",mid:"#ed9f31",accent:"#ffd589"},
+    {dark:"#8a5c27",mid:"#cc9558",accent:"#f4d9ab"}
+  ];
   for(let i=0;i<count;i++){
     const c=document.createElement("i");c.className="fx-crumb";
+    const colors=palettes[i%palettes.length];
     c.style.left=((hr.left-gr.left)/scale+hr.width/scale*(.18+Math.random()*.64))+"px";
     c.style.top=((hr.bottom-gr.top)/scale-12)+"px";
+    c.style.setProperty("--bite-dark",colors.dark);c.style.setProperty("--bite-mid",colors.mid);
+    c.style.setProperty("--bite-accent",colors.accent);
     c.style.setProperty("--crumb-x",(Math.random()*46-23)+"px");
     c.style.setProperty("--crumb-y",((gr.bottom-hr.bottom)/scale+75)+"px");
     c.style.setProperty("--crumb-r",(Math.random()*420-210)+"deg");
@@ -1887,7 +1924,6 @@ const EFFECTS={
     tone(95,.7,"sine",.045,90);await ctx.delay(1250);
   }},
   midnight:{async preFall(ctx){
-    ctx.active.skipPackageFall=true;
     const g=document.createElement("div");g.className="fx-gremlin";
     g.innerHTML=GREMLIN_SVG;ctx.scope.node(fxFront,g);
     void g.offsetWidth;g.classList.add("on");
@@ -1922,7 +1958,7 @@ const SECRET_COMMANDS={
   "202":{title:"NUTRITION RECORD",text:"THE LAST CUSTOMER NEVER LEFT",event:"glass",duration:6000},
   "969":{title:"INCIDENT REPORT",text:"THE FOOTSTEPS NUMBER FIVE",event:"keys"},
   "100":{title:"MANIFESTATION",text:"IT BORROWED THE CHOSEN SHAPE",event:"shudder"},
-  "000":{title:"CARE INSTRUCTIONS",text:"IT WAS NEVER FED. IT STILL GREW.",event:"rear",duration:4700},
+  "000":{title:"FOLLOW CARE\nINSTRUCTIONS",text:"IT WAS NEVER FED. IT STILL GREW.",event:"rear",duration:4700},
   "808":{title:"AGRONOMY LOG",text:"THE SOIL REFUSED TO DRINK",event:"plant"}
 };
 async function runSecretCommand(code){
@@ -2000,6 +2036,29 @@ async function runSecretCommand(code){
     }
     if(cmd.event==="rear"){
       const g=document.createElement("div");g.className="fx-gremlin on long";g.innerHTML=GREMLIN_SVG;scope.node(fxFront,g);
+      const stolenEntry=chooseCollectionItem();
+      if(stolenEntry){
+        const stolen=document.createElement("div");stolen.className="fx-stolen-item";stolen.innerHTML=stolenEntry.it.art();
+        const sw=48,sh=sw*stolenEntry.it.h/stolenEntry.it.w;
+        const walletButton=$("#hudtoggle"),walletPanel=$("#hud");
+        const wallet=getComputedStyle(walletButton).display!=="none"?walletButton:walletPanel;
+        const wr=wallet.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+        const walletX=(wr.left+wr.width/2-sr.left)/scale-sw/2;
+        const walletY=(wr.top+wr.height/2-sr.top)/scale-sh/2;
+        const gremlinBaseLeft=stage.clientWidth+104-142;
+        const handX=gremlinBaseLeft-164+71-sw/2,handY=211+105-sh/2;
+        stolen.style.cssText+=`;width:${sw}px;height:${sh.toFixed(1)}px`;
+        stolen.style.setProperty("--wallet-x",walletX.toFixed(1)+"px");
+        stolen.style.setProperty("--wallet-y",walletY.toFixed(1)+"px");
+        stolen.style.setProperty("--hand-x",handX.toFixed(1)+"px");
+        stolen.style.setProperty("--hand-y",handY.toFixed(1)+"px");
+        stolen.style.setProperty("--exit-x",(stage.clientWidth+sw).toFixed(1)+"px");
+        stolen.style.setProperty("--exit-y",(handY+18).toFixed(1)+"px");
+        const pk=stolen.firstElementChild;pk.style.setProperty("--u",(sw/stolenEntry.it.w)+"px");
+        scope.node(fxFront,stolen);
+        const stealTimer=setTimeout(()=>removeCollectionItem(stolenEntry),2350);
+        scope.cleanups.push(()=>clearTimeout(stealTimer));
+      }
       const chuckleTimer=setTimeout(()=>sfx.chuckle(),eventDuration-1250);
       scope.cleanups.push(()=>clearTimeout(chuckleTimer));
     }
