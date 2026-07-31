@@ -390,6 +390,10 @@ body{
 @keyframes vfdflash{50%{color:#ffd9d9;text-shadow:0 0 8px #ff9a9a}}
 
 /* ---------- bill acceptor ---------- */
+#cashblock{width:100%;border-radius:12px;padding:9px;
+  background:linear-gradient(180deg,#d3c8a7,#b9ae8b);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -3px 6px rgba(0,0,0,.2),
+             0 2px 5px rgba(0,0,0,.22)}
 #billunit{width:100%;border-radius:6px;padding:6px 8px 8px;cursor:pointer;
   background:linear-gradient(180deg,#3b3b3b,#1c1c1c);
   box-shadow:0 3px 7px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.2)}
@@ -420,18 +424,17 @@ body{
   background:#4af;box-shadow:0 0 7px #4af}
 
 /* ---------- big round lights 1 / 2 / 3 ---------- */
-.lightrow{position:relative;width:100%;display:flex;align-items:center;justify-content:center;padding:9px;
-  border-radius:12px;background:linear-gradient(180deg,#d3c8a7,#b9ae8b);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -3px 6px rgba(0,0,0,.2),
-             0 2px 5px rgba(0,0,0,.22)}
-.lightrow>.bigbtn{position:absolute;left:9px}
+.lightrow{position:relative;width:100%;display:grid;grid-template-columns:58px 1fr 58px;
+  align-items:center;margin-top:11px}
+.lightrow>.bigbtn{grid-column:1}
+.lightrow>#coinslot{grid-column:2;justify-self:center}
 .bigbtn{
-  position:relative;width:44px;height:44px;flex:0 0 44px;border-radius:50%;cursor:pointer;
+  position:relative;width:58px;height:58px;flex:0 0 58px;border-radius:50%;cursor:pointer;
   border:none;display:grid;place-items:center;
   background:radial-gradient(circle at 34% 28%, #9fb7e6, #3b5aa8 55%, #16265c);
   box-shadow:0 3px 6px rgba(0,0,0,.45), inset 0 -3px 6px rgba(0,0,0,.45),
              inset 0 3px 6px rgba(255,255,255,.35);
-  color:#0b1642;font:800 22px/1 Arial;text-shadow:0 1px 0 rgba(255,255,255,.35);
+  color:#0b1642;font:800 25px/1 Arial;text-shadow:0 1px 0 rgba(255,255,255,.35);
   transition:box-shadow .18s, color .18s, background .18s;
 }
 .bigbtn::after{content:"";position:absolute;left:22%;top:12%;width:42%;height:26%;border-radius:50%;
@@ -447,29 +450,30 @@ body{
 
 /* coin slot */
 #coinslot{
-  position:relative;flex:0 0 62px;height:44px;border-radius:6px;cursor:pointer;
+  position:relative;flex:0 0 62px;height:50px;border-radius:6px;cursor:pointer;
   background:linear-gradient(180deg,#cfc4a2,#b3a884);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 2px 3px rgba(0,0,0,.2);
-  display:grid;place-items:center;
 }
-#coinslot .mouth{width:7px;height:26px;border-radius:4px;
+#coinslot .mouth{position:absolute;left:50%;top:5px;transform:translateX(-50%);
+  width:7px;height:25px;border-radius:4px;
   background:linear-gradient(90deg,#000,#3a3a3a 45%,#0a0a0a);
   box-shadow:inset 0 0 4px #000, 0 1px 0 rgba(255,255,255,.35)}
-#coinslot .lbl{position:absolute;bottom:2px;font:700 5.5px/1 Arial;color:#6e6449;letter-spacing:.6px}
+#coinslot .lbl{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);width:max-content;text-align:center;
+  font:700 5.5px/1 Arial;color:#6e6449;letter-spacing:.6px;white-space:nowrap}
 
 /* ---------- keypad ---------- */
 #keypadblock{width:100%;border-radius:12px;padding:9px;
   background:linear-gradient(180deg,#d3c8a7,#b9ae8b);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -3px 6px rgba(0,0,0,.2),
              0 2px 5px rgba(0,0,0,.22)}
-#keypadblock>.bigwrap{margin-bottom:7px}
-#keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#keypadblock>.bigwrap{margin-bottom:15px}
+#keypad{display:grid;grid-template-columns:repeat(3,44px);justify-content:center;column-gap:10px;row-gap:6px}
 .key{
-  position:relative;aspect-ratio:1/1;border-radius:50%;border:none;cursor:pointer;
+  position:relative;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
   background:radial-gradient(circle at 34% 28%, #6f83b4, #2b3c74 55%, #101c46);
   box-shadow:0 2px 4px rgba(0,0,0,.45), inset 0 -2px 4px rgba(0,0,0,.5),
              inset 0 2px 4px rgba(255,255,255,.28);
-  color:#c9d6f5;font:800 15px/1 Arial;display:grid;place-items:center;
+  color:#c9d6f5;font:800 18px/1 Arial;display:grid;place-items:center;
   transition:box-shadow .15s,color .15s,background .15s,transform .06s;
 }
 .key.lit{
@@ -479,17 +483,19 @@ body{
              inset 0 2px 5px rgba(255,255,255,.45);
 }
 .key.press{transform:scale(.93);box-shadow:0 0 16px rgba(140,190,255,1), inset 0 2px 6px rgba(0,0,0,.5)}
-.key.clr{color:#ffb4a8;font-size:14px}
+.key.clr{color:#ffb4a8;font-size:16px}
+.key.hand svg{display:block;width:21px;height:21px;margin:auto;overflow:visible;color:#ffc24f;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}
 #okkey{
-  margin-top:7px;width:100%;height:34px;border-radius:17px;border:none;cursor:pointer;
+  margin:15px auto 0;width:152px;height:34px;border-radius:17px;border:none;cursor:pointer;
   background:linear-gradient(180deg,#3d3f47,#1b1d23 60%,#0e1014);
   box-shadow:0 3px 6px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.28);
-  color:#e9eefc;font:800 15px/1 Arial;letter-spacing:3px;display:grid;place-items:center;
+  color:#e9eefc;font:800 15px/1 Arial;letter-spacing:3px;display:flex;align-items:center;justify-content:center;gap:8px;
   transition:box-shadow .15s,color .15s}
 #okkey.lit{color:#fff;text-shadow:0 0 8px #9fc0ff;
   box-shadow:0 0 16px rgba(90,150,255,.8), inset 0 1px 0 rgba(255,255,255,.35)}
 #okkey:active{transform:translateY(1px)}
-#okkey .chk{margin-right:6px;font-size:12px;opacity:.9}
+#okkey .chk{font-size:12px;line-height:1;letter-spacing:0;opacity:.9}
 
 /* ---------- coin return ---------- */
 #returnwrap{width:100%;border-radius:12px;padding:9px;
@@ -1221,8 +1227,9 @@ body{
       <!-- VFD -->
       <div id="vfdshell"><div id="vfd">READY</div></div>
 
-      <!-- bill acceptor -->
-      <div id="billunit" role="button" tabindex="0" aria-label="Insert bill">
+      <!-- bill and coin acceptors -->
+      <div id="cashblock">
+        <div id="billunit" role="button" tabindex="0" aria-label="Insert bill">
         <div class="top"><span>ACCEPTS</span><span class="bl">$1 $5 $10</span><span>USE NEW BILLS</span></div>
         <div id="billsticker">
           <div class="demo">
@@ -1238,13 +1245,14 @@ body{
           <div id="billled"></div>
         </div>
         <div id="billslot"></div>
-      </div>
+        </div>
 
-      <!-- light 1 + coin slot -->
-      <div class="lightrow">
-        <button class="bigbtn" id="light1" aria-label="Indicator 1">1</button>
-        <div id="coinslot" role="button" tabindex="0" aria-label="Insert coin">
-          <div class="mouth"></div><div class="lbl">INSERT COIN</div>
+        <!-- light 1 + coin slot -->
+        <div class="lightrow">
+          <button class="bigbtn" id="light1" aria-label="Indicator 1">1</button>
+          <div id="coinslot" role="button" tabindex="0" aria-label="Insert coin">
+            <div class="mouth"></div><div class="lbl">INSERT COIN</div>
+          </div>
         </div>
       </div>
 
@@ -1259,7 +1267,12 @@ body{
           <button class="key" data-k="9">9</button>
           <button class="key clr" data-k="C" aria-label="Clear">&#10006;</button>
           <button class="key" data-k="0">0</button>
-          <button class="key" data-k="R" aria-label="Coin return" style="font-size:13px">&#9995;</button>
+          <button class="key hand" data-k="R" aria-label="Coin return">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" stroke="#7a4b09" stroke-width=".7" stroke-linejoin="round"
+                d="M6.6 11.2V7.1a1.25 1.25 0 0 1 2.5 0v2.7h.8V4.9a1.25 1.25 0 0 1 2.5 0v4.9h.8V4.2a1.25 1.25 0 0 1 2.5 0v5.6h.8V6a1.25 1.25 0 0 1 2.5 0v7.5c0 4.2-2.5 7-6.4 7h-.8c-2.1 0-3.4-1-4.4-2.7l-2.8-4.6a1.4 1.4 0 0 1 2.2-1.7l1.7 1.8V11.2z"/>
+            </svg>
+          </button>
         </div>
         <button id="okkey"><span class="chk">&#10004;</span>OK</button>
       </div>
