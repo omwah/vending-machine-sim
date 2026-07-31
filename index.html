@@ -2043,6 +2043,8 @@ async function runSecretCommand(code){
   const cmd=SECRET_COMMANDS[code];if(!cmd||!META.discovered.includes(code))return false;
   S.entry="";highlight();setMode("secretEvent");const scope=new EffectScope();
   try{
+    collectionSuppressed=true;collectionEl.classList.remove("on");
+    scope.cleanups.push(()=>{collectionSuppressed=false;collectionEl.classList.remove("on");});
     const variants=cmd.texts||[cmd.text],replayCount=Number(META.commandReplay[code])||0;
     const loreText=variants[replayCount%variants.length];
     const eventDuration=cmd.duration||3700;
@@ -2116,8 +2118,6 @@ async function runSecretCommand(code){
       scope.cleanups.push(()=>clearTimeout(launchTimer));
     }
     if(cmd.event==="rear"){
-      collectionSuppressed=true;collectionEl.classList.remove("on");
-      scope.cleanups.push(()=>{collectionSuppressed=false;collectionEl.classList.remove("on");});
       const g=document.createElement("div");g.className="fx-gremlin on long";g.innerHTML=GREMLIN_SVG;scope.node(fxFront,g);
       const stolenEntry=chooseCollectionItem();
       if(stolenEntry){
@@ -2239,8 +2239,11 @@ function renderHUD(){
   });
 }
 function openWallet(){closePop();$("#hud").classList.remove("hidden");}
-function closeWallet(){$("#hud").classList.add("hidden");$("#hudtoggle").focus();}
-function toggleWallet(){if($("#hud").classList.contains("hidden"))openWallet();else closeWallet();}
+function closeWallet(returnFocus=true){
+  $("#hud").classList.add("hidden");
+  if(returnFocus)$("#hudtoggle").focus();else document.activeElement?.blur();
+}
+function toggleWallet(returnFocus=true){if($("#hud").classList.contains("hidden"))openWallet();else closeWallet(returnFocus);}
 $("#hudhide").onclick=closeWallet;
 $("#hud").classList.add("hidden");   // keep the machine unobstructed on initial load
 $("#hudtoggle").onclick=openWallet;
@@ -2291,9 +2294,10 @@ function openCollection(){
   if(collectionSuppressed)return;
   closePop();renderCollection();collectionEl.classList.add("on");collectionEl.focus();
 }
-function closeCollection(){
+function closeCollection(returnFocus=true){
   if(!collectionEl.classList.contains("on"))return;
-  collectionEl.classList.remove("on");$("#collectiontoggle").focus();
+  collectionEl.classList.remove("on");
+  if(returnFocus)$("#collectiontoggle").focus();else document.activeElement?.blur();
 }
 $("#collectiontoggle").onclick=openCollection;
 $("#collectionclose").onclick=closeCollection;
@@ -2672,17 +2676,19 @@ stickerZoom.addEventListener("click",closeSticker);
    13. KEYBOARD
    ============================================================ */
 addEventListener("keydown",e=>{
+  if(e.defaultPrevented)return;
   const shortcut=e.key.toLowerCase(),plain=!e.ctrlKey&&!e.metaKey&&!e.altKey;
+  if((e.key==="Enter"||e.key===" ")&&(e.target===$("#hudtoggle")||e.target===$("#collectiontoggle")))return;
   if(stickerZoom.classList.contains("on")){e.preventDefault();closeSticker();return;}
   if(collectionEl.classList.contains("on")){
-    if(e.key==="Escape"||(plain&&shortcut==="c")){e.preventDefault();closeCollection();}return;
+    if(e.key==="Escape"||(plain&&shortcut==="c")){e.preventDefault();closeCollection(false);}return;
   }
   if(reveal.classList.contains("on")){ closeReveal(); return; }
-  if(plain&&shortcut==="w"){e.preventDefault();toggleWallet();return;}
+  if(plain&&shortcut==="w"){e.preventDefault();toggleWallet(false);return;}
   if(plain&&shortcut==="c"){e.preventDefault();openCollection();return;}
   if(/^[0-9]$/.test(e.key)){
     const k=[...keys].find(x=>x.dataset.k===e.key); if(k){press(k);keyIn(e.key);}
-  }else if(e.key==="Enter"){press(okKey);lightPressedControl(okKey);sfx.ok();doOK();}
+  }else if(e.key==="Enter"){e.preventDefault();press(okKey);lightPressedControl(okKey);sfx.ok();doOK();}
   else if(e.key==="Escape"){
     const hudPanel=$("#hud");
     if(!hudPanel.classList.contains("hidden"))hudPanel.classList.add("hidden");
