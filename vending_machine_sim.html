@@ -1074,10 +1074,24 @@ body{
 .fx-plant i:nth-child(odd){right:2px;transform-origin:right bottom}.fx-plant i:nth-child(even){left:2px;transform-origin:left bottom;rotate:180deg}
 @keyframes plantgrow{0%{height:0;opacity:0}18%{opacity:1}68%{height:430px;opacity:1}88%{height:430px;opacity:.8}100%{height:360px;opacity:0}}
 @keyframes leafgrow{to{transform:scale(1)}}
+.fx-rocket{position:absolute;width:230px;height:108px;z-index:12;opacity:0;transform-origin:58% 50%;
+  filter:drop-shadow(0 12px 8px rgba(0,0,0,.7));animation:rocketlaunch 4s cubic-bezier(.18,.65,.22,1) forwards}
+.fx-rocket svg{display:block;width:100%;height:100%;overflow:visible}
+.fx-rocket .flame{transform-origin:50px 76px;animation:rocketflame .09s ease-in-out infinite alternate}
+@keyframes rocketflame{to{transform:scaleX(1.45) scaleY(.72)}}
+@keyframes rocketlaunch{
+  0%{opacity:0;transform:translate(0,42px) scale(.12) rotate(-18deg)}
+  10%{opacity:1}
+  24%{opacity:1;transform:translate(20px,-18px) scale(.52) rotate(-20deg)}
+  58%{opacity:1;transform:translate(250px,-330px) scale(1.12) rotate(-28deg)}
+  100%{opacity:0;transform:translate(720px,-980px) scale(.7) rotate(-36deg)}
+}
 #glass.fx-sickly{animation:sicklyflash .8s ease-in-out 2}
+#glass.fx-sickly-long{animation:sicklyflash 1.15s ease-in-out 5}
 @keyframes sicklyflash{50%{filter:hue-rotate(38deg) saturate(1.6);box-shadow:inset 0 0 36px rgba(92,190,44,.35)}}
 @media (prefers-reduced-motion:reduce){
-  .itemholder.fx-scared,.itemholder.fx-faint,.itemholder.fx-puff,#machine.fx-shudder,.fx-gremlin.on,.fx-plant{animation-duration:.01ms!important}
+  .itemholder.fx-scared,.itemholder.fx-faint,.itemholder.fx-puff,#machine.fx-shudder,
+  .fx-gremlin.on,.fx-plant,.fx-rocket{animation-duration:.01ms!important}
 }
 
 /* ---------- narrow / mobile ---------- */
@@ -1601,9 +1615,10 @@ function loadMeta(){
   try{
     const raw=JSON.parse(localStorage.getItem(META_KEY)||"null");
     if(raw&&raw.version===1&&Array.isArray(raw.discovered)&&Array.isArray(raw.solved))
-      return {version:1,discovered:[...new Set(raw.discovered)],solved:[...new Set(raw.solved)],replay:Number(raw.replay)||0};
+      return {version:1,discovered:[...new Set(raw.discovered)],solved:[...new Set(raw.solved)],
+        replay:Number(raw.replay)||0,commandReplay:raw.commandReplay&&typeof raw.commandReplay==="object"?raw.commandReplay:{}};
   }catch(e){}
-  return {version:1,discovered:[],solved:[],replay:0};
+  return {version:1,discovered:[],solved:[],replay:0,commandReplay:{}};
 }
 const META=loadMeta();
 function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify(META));}catch(e){}}
@@ -1903,8 +1918,8 @@ function discoverClue(it){
 }
 
 const SECRET_COMMANDS={
-  "300":{title:"ORDER ACCEPTED",text:"THE LAST CUSTOMER NEVER LEFT",event:"reverse"},
-  "202":{title:"NUTRITION RECORD",text:"DONOR FIELD: REDACTED",event:"glass"},
+  "300":{title:"BACHELOR CHOW",texts:["NOW WITH FLAVOR!","MAKES ITS OWN GRAVY!"],event:"rocket",duration:4800},
+  "202":{title:"NUTRITION RECORD",text:"THE LAST CUSTOMER NEVER LEFT",event:"glass",duration:6000},
   "969":{title:"INCIDENT REPORT",text:"THE FOOTSTEPS NUMBER FIVE",event:"keys"},
   "100":{title:"MANIFESTATION",text:"IT BORROWED THE CHOSEN SHAPE",event:"shudder"},
   "000":{title:"CARE INSTRUCTIONS",text:"IT WAS NEVER FED. IT STILL GREW.",event:"rear"},
@@ -1914,14 +1929,78 @@ async function runSecretCommand(code){
   const cmd=SECRET_COMMANDS[code];if(!cmd||!META.discovered.includes(code))return false;
   S.entry="";highlight();setMode("secretEvent");const scope=new EffectScope();
   try{
-    setVFD(cmd.title,0,1);lcdMsg(cmd.text,3600);sfx.ghost();
-    if(cmd.event==="glass")scope.cls(glassEl,"fx-sickly");
+    const variants=cmd.texts||[cmd.text],replayCount=Number(META.commandReplay[code])||0;
+    const loreText=variants[replayCount%variants.length];
+    const eventDuration=cmd.duration||3700;
+    META.commandReplay[code]=replayCount+1;saveMeta();
+    setVFD(cmd.title,0,1);lcdMsg(loreText,eventDuration-100);sfx.ghost();
+    if(cmd.event==="glass")scope.cls(glassEl,cmd.duration?"fx-sickly-long":"fx-sickly");
     if(cmd.event==="shudder")scope.cls(machineEl,"fx-shudder");
     if(cmd.event==="keys")keys.forEach((k,i)=>setTimeout(()=>press(k),i*45));
-    if(cmd.event==="reverse")[...cascade].reverse().flat().forEach((el,i)=>setTimeout(()=>el.classList.add("lit"),i*45));
+    if(cmd.event==="rocket"){
+      doorOpen=true;scope.cls(doorEl,"pushed");scope.cleanups.push(()=>{doorOpen=false;});
+      const launchTimer=setTimeout(()=>{
+        const bay=$("#bay"),br=bay.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+        const rocket=document.createElement("div");rocket.className="fx-rocket";
+        rocket.style.left=((br.left-sr.left)/scale+br.width/(2*scale)-112)+"px";
+        rocket.style.top=((br.top-sr.top)/scale+br.height/(2*scale)-55)+"px";
+        rocket.innerHTML=`<svg viewBox="0 0 320 150" aria-hidden="true">
+          <defs>
+            <linearGradient id="peBody" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#9be3ba"/><stop offset=".54" stop-color="#86d9aa"/>
+              <stop offset=".55" stop-color="#61c98e"/><stop offset="1" stop-color="#45b778"/>
+            </linearGradient>
+            <linearGradient id="peFin" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#35b8a4"/><stop offset="1" stop-color="#159b91"/>
+            </linearGradient>
+            <linearGradient id="peGlass" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#b7ffff"/><stop offset="1" stop-color="#20d8ef"/>
+            </linearGradient>
+          </defs>
+          <g class="flame">
+            <path d="M48 68C28 65 12 68 0 76c13 10 29 13 49 9z" fill="#ef3d27" stroke="#502018" stroke-width="2"/>
+            <path d="M48 72C32 71 22 73 14 77c9 5 20 6 34 4z" fill="#ffd95b"/>
+          </g>
+          <!-- tall swept tail and lower landing fin traced from the silhouette reference -->
+          <path d="M83 62C72 42 60 22 43 9L8 5l4 10 48 41z" fill="url(#peFin)" stroke="#173c35" stroke-width="3"/>
+          <path d="M91 98c-6 14-14 30-30 43l-42 5 32-22-13-4 31-23z" fill="url(#peFin)" stroke="#173c35" stroke-width="3"/>
+          <path d="M9 5L1 3l4 9 7 3zM19 146l-11 1 7-8 7 1z" fill="#e84a3e" stroke="#5e231e" stroke-width="1.5"/>
+          <!-- engine bell and ribbed housing -->
+          <path d="M57 61c-15 2-23 9-23 17s8 16 23 19l13-12V70z" fill="#d9d59b" stroke="#3d4328" stroke-width="3"/>
+          <path d="M42 68l-10 2v16l10 3z" fill="#b9b676" stroke="#3d4328" stroke-width="2"/>
+          <path d="M49 65v29M54 63v33M59 62v35M64 63v31" stroke="#77774d" stroke-width="2"/>
+          <!-- primary fuselage -->
+          <path d="M66 61C107 40 181 38 242 52c34 8 56 21 72 35-21 22-57 34-105 39-58 6-111-1-142-20-12-8-13-36-1-45z"
+            fill="url(#peBody)" stroke="#153d2c" stroke-width="3"/>
+          <path d="M68 98c56 18 145 22 218-2-25 22-69 31-124 31-43-1-77-8-95-21z" fill="#35ad70" opacity=".55"/>
+          <!-- bright red belt around the hull -->
+          <path d="M61 88c75 13 174 16 248 1" fill="none" stroke="#651d22" stroke-width="7"/>
+          <path d="M61 86c75 13 174 16 248 1" fill="none" stroke="#ff4c4f" stroke-width="4"/>
+          <!-- cockpit canopy -->
+          <path d="M245 58c25 5 43 13 56 24l-9 8-47-6-18-14z" fill="url(#peGlass)" stroke="#134c45" stroke-width="3"/>
+          <path d="M248 60l-5 23M267 65l-4 21M285 72l-4 16" stroke="#168d8f" stroke-width="2"/>
+          <!-- portholes -->
+          <g fill="#26332c" stroke="#d8d29a" stroke-width="3">
+            <circle cx="112" cy="69" r="7"/><circle cx="142" cy="65" r="7"/>
+            <circle cx="174" cy="64" r="8"/><circle cx="207" cy="66" r="7"/>
+          </g>
+          <!-- upper turret and antenna -->
+          <path d="M166 49c0-9 8-17 20-17s21 8 21 17l-7 8h-27z" fill="#10b956" stroke="#174b2b" stroke-width="3"/>
+          <path d="M175 33c0-7 4-12 11-12s11 5 11 12z" fill="url(#peGlass)" stroke="#174b2b" stroke-width="2"/>
+          <path d="M202 39l24-14" stroke="#d8d59d" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="228" cy="24" r="5" fill="#d8d59d" stroke="#4f5034" stroke-width="2"/>
+          <!-- round Planet Express tail emblem -->
+          <circle cx="76" cy="48" r="15" fill="#f2edd0" stroke="#128c7d" stroke-width="4"/>
+          <circle cx="76" cy="48" r="9" fill="#27ad96"/>
+          <path d="M70 52l15-12-7 15z" fill="#f2edd0"/>
+        </svg>`;
+        scope.node(fxFront,rocket);tone(105,.9,"sawtooth",.055,260);noise(1.2,.04,500);
+      },480);
+      scope.cleanups.push(()=>clearTimeout(launchTimer));
+    }
     if(cmd.event==="rear"){const g=document.createElement("div");g.className="fx-gremlin on";g.innerHTML='<i class="body"></i><i class="grin"></i>';scope.node(fxRear,g);}
     if(cmd.event==="plant"){const plant=document.createElement("div");plant.className="fx-plant";scope.node(fx,plant);}
-    await delay(3700);
+    await delay(eventDuration);
     if(!META.solved.includes(code)){META.solved.push(code);saveMeta();}
   }finally{scope.cleanup();cascade.flat().forEach(el=>el.classList.remove("lit"));lcd.classList.remove("busy");setMode("idle");refreshVFD();}
   return true;
