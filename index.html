@@ -510,19 +510,30 @@ body{
   position:relative;height:38px;border-radius:3px 3px 8px 8px;cursor:pointer;
   background:linear-gradient(180deg,#0d0c0b,#2b2823 30%,#d7ccae 32%,#b3a884);
   box-shadow:inset 0 6px 10px rgba(0,0,0,.75), 0 1px 0 rgba(255,255,255,.4);
-  overflow:hidden;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding-bottom:4px;
+  overflow:hidden;display:flex;align-items:flex-end;justify-content:center;gap:2px;padding:1px 3px;
 }
 #cointray.has{box-shadow:inset 0 6px 10px rgba(0,0,0,.75),0 0 0 2px rgba(255,210,58,.9),0 0 20px rgba(255,210,58,.5)}
 .coin{
-  width:15px;height:15px;border-radius:50%;font:700 5.5px/1 Arial;display:grid;place-items:center;
-  color:#3a3a34;animation:drop .35s cubic-bezier(.3,1.5,.5,1) both;
-  background:radial-gradient(circle at 34% 28%,#f2f2ec,#b9b9ae 60%,#7e7e75);
-  box-shadow:0 1px 2px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.4);
+  flex:0 0 auto;width:26px;height:26px;border-radius:50%;font:700 6.5px/1 Arial;display:grid;place-items:center;
+  color:#3b3d3d;text-shadow:0 1px rgba(255,255,255,.5);animation:drop .35s cubic-bezier(.3,1.5,.5,1) both;
+  background:
+    radial-gradient(circle at 50% 50%,transparent 55%,rgba(255,255,255,.38) 57% 62%,rgba(73,76,76,.36) 65%,transparent 69%),
+    radial-gradient(circle at 34% 27%,#fafbf8,#c7c9c6 48%,#8b8e8b 76%,#e2e3df);
+  box-shadow:0 2px 3px rgba(0,0,0,.68),inset 0 0 0 1px rgba(255,255,255,.5),inset 0 0 0 2px rgba(75,78,76,.24);
 }
-.coin.c25{width:17px;height:17px}
-.coin.c05{width:14px;height:14px}
-.coin.c10{width:12px;height:12px}
-.coin.c100{background:radial-gradient(circle at 34% 28%,#ffe9a8,#d0a54a 60%,#8f6a1e);color:#4a3510}
+.coin.c100{width:36.1px;height:36.1px;font-size:8.5px}
+.coin.c25{width:33.1px;height:33.1px;font-size:7.5px}
+.coin.c05{width:28.9px;height:28.9px;font-size:7px}
+.coin.c01{width:26px;height:26px;color:#542817;text-shadow:0 1px rgba(255,221,190,.34);
+  background:
+    radial-gradient(circle at 50% 50%,transparent 55%,rgba(255,213,180,.3) 57% 62%,rgba(87,37,20,.38) 65%,transparent 69%),
+    radial-gradient(circle at 34% 27%,#e9a477,#b96942 50%,#713721 77%,#c77b51);
+  box-shadow:0 2px 3px rgba(0,0,0,.68),inset 0 0 0 1px rgba(255,199,163,.42),inset 0 0 0 2px rgba(91,39,22,.3)}
+.coin.c10{width:24.4px;height:24.4px;font-size:6px}
+.coin svg{display:block;width:76%;height:76%;overflow:visible;color:#555956;filter:drop-shadow(0 1px rgba(255,255,255,.5))}
+.coin.c01 svg{color:#713a25;filter:drop-shadow(0 1px rgba(255,205,171,.32))}
+.coin .coin-relief{fill:currentColor;opacity:.72}
+.coin .coin-line{fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;opacity:.78}
 @keyframes drop{from{transform:translateY(-26px) rotate(-40deg);opacity:0}}
 #returnlbl{text-align:center;font:700 6px/1 Arial;color:#6e6449;letter-spacing:.8px;margin-top:4px}
 #coinbtn{
@@ -2754,17 +2765,28 @@ function flashBill(){
 }
 
 /* popup helper ------------------------------------------------ */
-let openPop=null;
-function popup(anchor,title,rows){
+let openPop=null,openPopAnchor=null;
+function popup(anchor,title,rows,{stayOpen=false}={}){
   closePop();
   const p=document.createElement("div"); p.className="popup";
   p.innerHTML=`<h4>${title}</h4>`;
+  const refreshers=[];
   rows.forEach(r=>{
     const b=document.createElement("button");
     if(r.wide) b.className="wide";
-    b.innerHTML=`<span>${r.label}</span>${r.note?`<small>${r.note}</small>`:""}`;
-    b.disabled=!!r.disabled;
-    b.onclick=e=>{e.stopPropagation(); closePop(); r.act(); };
+    const label=document.createElement("span"),note=document.createElement("small");label.textContent=r.label;b.appendChild(label);
+    const refresh=()=>{
+      const noteValue=typeof r.note==="function"?r.note():r.note;
+      note.textContent=noteValue||"";note.hidden=!noteValue;if(note.parentNode!==b)b.appendChild(note);
+      b.disabled=!!(typeof r.disabled==="function"?r.disabled():r.disabled);
+    };
+    refreshers.push(refresh);refresh();
+    b.onclick=e=>{
+      e.stopPropagation();
+      if(!stayOpen)closePop();
+      r.act();
+      if(stayOpen&&openPop===p)refreshers.forEach(update=>update());
+    };
     p.appendChild(b);
   });
   const c=document.createElement("button"); c.className="close"; c.textContent="cancel";
@@ -2775,10 +2797,12 @@ function popup(anchor,title,rows){
   if(left+pr.width>innerWidth-8) left=innerWidth-pr.width-8;
   let top=Math.min(Math.max(8,r.top),innerHeight-pr.height-8);
   p.style.left=left+"px"; p.style.top=top+"px";
-  openPop=p;
+  openPop=p;openPopAnchor=anchor;
 }
-function closePop(){ if(openPop){openPop.remove(); openPop=null;} }
-addEventListener("pointerdown",e=>{ if(openPop&&!openPop.contains(e.target)) closePop(); },true);
+function closePop(){ if(openPop){openPop.remove();openPop=null;openPopAnchor=null;} }
+addEventListener("pointerdown",e=>{
+  if(openPop&&!openPop.contains(e.target)&&!openPopAnchor?.contains(e.target))closePop();
+},true);
 
 /* bill slot --------------------------------------------------- */
 $("#billunit").addEventListener("click",()=>{
@@ -2792,10 +2816,10 @@ $("#billunit").addEventListener("click",()=>{
 $("#coinslot").addEventListener("click",()=>{
   if(S.busy) return;
   popup($("#coinslot"),"INSERT COIN",[
-    {label:"Quarter — 25¢",note:`×${S.cash[25]||0}`,disabled:!S.cash[25],act:()=>insert(25)},
-    {label:"Dime — 10¢",note:`×${S.cash[10]||0}`,disabled:!S.cash[10],act:()=>insert(10)},
-    {label:"Nickel — 5¢",note:`×${S.cash[5]||0}`,disabled:!S.cash[5],act:()=>insert(5)}
-  ]);
+    {label:"Quarter — 25¢",note:()=>`×${S.cash[25]||0}`,disabled:()=>!S.cash[25],act:()=>insert(25)},
+    {label:"Dime — 10¢",note:()=>`×${S.cash[10]||0}`,disabled:()=>!S.cash[10],act:()=>insert(10)},
+    {label:"Nickel — 5¢",note:()=>`×${S.cash[5]||0}`,disabled:()=>!S.cash[5],act:()=>insert(5)}
+  ],{stayOpen:true});
 });
 
 /* ============================================================
@@ -3014,15 +3038,36 @@ async function vend(it,change){
 }
 
 /* ---- change ---- */
+function coinFace(den){
+  const faces={
+    100:`<svg viewBox="0 0 100 100" aria-hidden="true">
+      <path class="coin-relief" d="M16 54C29 35 39 30 50 44c11-14 21-9 34 10-14-7-23-5-29 2l7 17-12-9-12 9 7-17c-6-7-15-9-29-2Z"/>
+      <path class="coin-line" d="M22 65c18 11 38 11 56 0M50 30v34M43 30l7-9 7 9"/></svg>`,
+    25:`<svg viewBox="0 0 100 100" aria-hidden="true">
+      <path class="coin-relief" d="M61 18c-15 2-25 12-26 28-1 9 3 14 1 21l-9 14h46l-8-13c-3-5 4-10 3-18-1-6-7-7-5-13 2-7 2-13-2-19Z"/>
+      <path class="coin-line" d="M58 31c-8 2-11 8-10 15l-5 5 7 2c1 8 6 12 14 13M31 81c10-8 27-11 39 0"/></svg>`,
+    10:`<svg viewBox="0 0 100 100" aria-hidden="true">
+      <path class="coin-relief" d="M44 22h12l-2 12 7 9-6 7v28H45V50l-6-7 7-9-2-12Z"/>
+      <path class="coin-line" d="M34 69C22 60 21 45 29 34m37 35c12-9 13-24 5-35M28 60l-8-3m11-7-9-5m48 15 8-3m-11-7 9-5"/></svg>`,
+    5:`<svg viewBox="0 0 100 100" aria-hidden="true">
+      <path class="coin-relief" d="M18 43h64v9H18zM23 56h54v22H23zM14 80h72v7H14zM30 55h7v24h-7zm17 0h7v24h-7zm16 0h7v24h-7z"/>
+      <path class="coin-line" d="M17 42 50 22l33 20M28 36h44"/></svg>`,
+    1:`<svg viewBox="0 0 100 100" aria-hidden="true">
+      <path class="coin-relief" d="M59 18c-14 3-23 14-22 29 0 9 5 15 3 22L29 82h44L63 68c-3-5 3-9 2-16-1-5-6-7-4-12 3-8 3-15-2-22Z"/>
+      <path class="coin-line" d="M55 31c-7 3-9 9-8 15l-4 5 6 2c1 7 6 11 13 12M33 81c9-7 25-10 36 0"/></svg>`
+  };
+  return faces[den]||faces[25];
+}
 function dropChange(amount){
-  const dens=[100,25,10,5]; const out=[];
+  const dens=[100,25,10,5,1]; const out=[];
   let left=amount;
   for(const d of dens){ while(left>=d){ out.push(d); left-=d; } }
   out.forEach((d,i)=>setTimeout(()=>{
     S.change.push(d);
     const c=document.createElement("div");
     c.className="coin c"+String(d).padStart(2,"0");
-    c.textContent = d===100?"$1":(d===25?"25":d===10?"10":"5");
+    c.innerHTML=coinFace(d);c.setAttribute("role","img");
+    c.setAttribute("aria-label",d===100?"One dollar coin":`${d} cent coin`);
     coinTray.appendChild(c); coinTray.classList.add("has");
     sfx.coin();
   }, 180*i));
