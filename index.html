@@ -1235,9 +1235,38 @@ body{
 #glass.fx-sickly{animation:sicklyflash .8s ease-in-out 2}
 #glass.fx-sickly-long{animation:sicklyflash 1.15s ease-in-out 5}
 @keyframes sicklyflash{50%{filter:hue-rotate(38deg) saturate(1.6);box-shadow:inset 0 0 36px rgba(92,190,44,.35)}}
+
+/* Ten rapid presses of the keypad clear key send the whole machine into a vortex. */
+#machine.fx-keypad-vanish{
+  pointer-events:none;transform-origin:50% 48%;will-change:transform,opacity,filter;
+  animation:keypadvanish 2.65s cubic-bezier(.5,.03,.82,.22) forwards
+}
+#machine.fx-keypad-vanish::after{
+  content:"";position:absolute;inset:-9%;z-index:100;pointer-events:none;border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,
+    rgba(91,140,255,0) 0 14deg,rgba(91,140,255,.62) 18deg,
+    rgba(255,210,58,.72) 23deg,rgba(255,255,255,0) 32deg);
+  mix-blend-mode:screen;opacity:0;filter:blur(7px);
+  animation:keypadvortex 2.65s cubic-bezier(.45,.02,.86,.2) forwards
+}
+@keyframes keypadvanish{
+  0%{transform:rotate(0) scale(1);opacity:1;filter:none}
+  9%{transform:rotate(-4deg) scale(1.035);opacity:1;filter:none}
+  29%{transform:rotate(78deg) scale(.91,.96);opacity:1;filter:hue-rotate(25deg)}
+  57%{transform:rotate(350deg) scale(.55,.7);opacity:1;filter:blur(1px) hue-rotate(105deg)}
+  81%{transform:rotate(735deg) scale(.19,.36);opacity:.78;filter:blur(5px) hue-rotate(220deg)}
+  100%{transform:rotate(1110deg) scale(0);opacity:0;filter:blur(20px) hue-rotate(330deg)}
+}
+@keyframes keypadvortex{
+  0%,5%{transform:rotate(0) scale(.65);opacity:0}
+  18%{opacity:.65}
+  67%{transform:rotate(-640deg) scale(.74,1.08);opacity:.78}
+  100%{transform:rotate(-1280deg) scale(.02);opacity:0}
+}
 @media (prefers-reduced-motion:reduce){
   .itemholder.fx-scared,.itemholder.fx-faint,.itemholder.fx-puff,#machine.fx-shudder,
-  .fx-plant,.fx-plant .plant-branch,.fx-plant .plant-leaf,.fx-rocket{animation-duration:.01ms!important}
+  .fx-plant,.fx-plant .plant-branch,.fx-plant .plant-leaf,.fx-rocket,
+  #machine.fx-keypad-vanish,#machine.fx-keypad-vanish::after{animation-duration:.01ms!important}
   .fx-gremlin.on{animation:none!important;opacity:1;transform:translateX(-164px) rotate(0)}
   .fx-stolen-item{animation:none!important;opacity:1;transform:translate(var(--hand-x),var(--hand-y))}
   .fx-ghost.on{animation:none!important;opacity:.54}
@@ -2657,7 +2686,31 @@ function endCard(){
    10. KEYPAD
    ============================================================ */
 function press(el){ el.classList.add("press"); setTimeout(()=>el.classList.remove("press"),110); }
-keys.forEach(k=>k.addEventListener("click",()=>{ press(k); keyIn(k.dataset.k); }));
+const RAPID_CLEAR_COUNT=10, RAPID_CLEAR_WINDOW=3000;
+let rapidClearPresses=[], machineVanished=false;
+function recordRapidClearPress(){
+  if(machineVanished) return true;
+  const now=performance.now();
+  rapidClearPresses=rapidClearPresses.filter(time=>now-time<=RAPID_CLEAR_WINDOW);
+  rapidClearPresses.push(now);
+  if(rapidClearPresses.length<RAPID_CLEAR_COUNT) return false;
+  rapidClearPresses=[]; machineVanished=true;
+  S.busy=true; S.mode="vanished"; S.entry=""; highlight();
+  machineEl.classList.add("fx-keypad-vanish");
+  noise(1.2,.045,850);
+  tone(690,.45,"sawtooth",.055,-260);
+  setTimeout(()=>tone(170,1.1,"sawtooth",.05,-120),280);
+  return true;
+}
+keys.forEach(k=>k.addEventListener("click",()=>{
+  press(k);
+  if(k.dataset.k==="C"){
+    if(recordRapidClearPress()) return;
+  }else{
+    rapidClearPresses=[];
+  }
+  keyIn(k.dataset.k);
+}));
 okKey.addEventListener("click",()=>{ lightPressedControl(okKey);sfx.ok();doOK(); });
 
 function keyIn(k){
@@ -2956,6 +3009,19 @@ function fit(){
 }
 addEventListener("resize",fit); addEventListener("orientationchange",()=>setTimeout(fit,120));
 fit(); renderHUD();
+
+/* Browser-only regression probe; inert unless the audit query string is present. */
+if(new URLSearchParams(location.search).has("auditKeypadVanish")){
+  const auditClear=document.querySelector('.key.clr');
+  for(let i=0;i<9;i++) auditClear.click();
+  document.body.dataset.vanishAfterNine=machineEl.classList.contains("fx-keypad-vanish");
+  auditClear.click();
+  document.body.dataset.vanishAfterTen=machineEl.classList.contains("fx-keypad-vanish");
+  setTimeout(()=>{
+    document.body.dataset.vanishPersists=machineEl.classList.contains("fx-keypad-vanish");
+    document.body.dataset.vanishOpacity=getComputedStyle(machineEl).opacity;
+  },2800);
+}
 
 /* prime audio on first gesture */
 ["pointerdown","keydown"].forEach(ev=>addEventListener(ev,()=>ac(),{once:true}));
