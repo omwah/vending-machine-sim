@@ -23,15 +23,17 @@ body{
 
 /* ---------- room ---------- */
 #room{
+  --wall-floor-seam:86%;
   position:fixed;inset:0;overflow:hidden;z-index:0;
   background:
     /* warm ceiling light pool */
     radial-gradient(120% 60% at 55% -10%, rgba(255,214,150,.22), rgba(0,0,0,0) 60%),
-    linear-gradient(#3a2418 0 58%, #241610 58% 58.4%, #6a4526 58.4% 100%);
+    linear-gradient(#3a2418 0 var(--wall-floor-seam),#241610 var(--wall-floor-seam)
+      calc(var(--wall-floor-seam) + .4%),#6a4526 calc(var(--wall-floor-seam) + .4%) 100%);
 }
 /* brick wall */
 #room::before{
-  content:"";position:absolute;left:0;right:0;top:0;height:58%;
+  content:"";position:absolute;left:0;right:0;top:0;height:var(--wall-floor-seam);
   background:
     repeating-linear-gradient(0deg, rgba(0,0,0,.42) 0 2px, rgba(0,0,0,0) 2px 34px),
     repeating-linear-gradient(90deg, rgba(0,0,0,.34) 0 2px, rgba(0,0,0,0) 2px 76px),
@@ -42,7 +44,7 @@ body{
 }
 /* offset every other brick course */
 #room::after{
-  content:"";position:absolute;left:38px;right:0;top:0;height:58%;
+  content:"";position:absolute;left:38px;right:0;top:0;height:var(--wall-floor-seam);
   background:repeating-linear-gradient(0deg,
      rgba(0,0,0,0) 0 34px, rgba(0,0,0,.34) 34px 36px, rgba(0,0,0,0) 36px 68px);
   background-position:0 17px;
@@ -50,7 +52,7 @@ body{
 }
 /* wood floor */
 #floor{
-  position:absolute;left:0;right:0;bottom:0;height:42%;z-index:1;
+  position:absolute;left:0;right:0;bottom:0;height:calc(100% - var(--wall-floor-seam));z-index:1;
   background:
     repeating-linear-gradient(96deg, rgba(0,0,0,.20) 0 1px, rgba(0,0,0,0) 1px 26px),
     repeating-linear-gradient(4deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,0) 1px 120px),
@@ -2725,6 +2727,9 @@ function fit(){
   stage.style.transform=`scale(${s})`;
   const used=DH*s;
   const pad = Math.max(narrow?8:12, Math.min(110,(h-used)/2));
+  const floorRise=Math.max(72,Math.min(120,used*.12));
+  const seamY=Math.max(24,Math.min(h-24,pad+used-floorRise));
+  $("#room").style.setProperty("--wall-floor-seam",(seamY/h*100).toFixed(2)+"%");
   document.body.style.height = (used+pad+(narrow?18:16)) + "px";
   document.body.style.minHeight="100%";
   $("#viewport").style.height = used + "px";
