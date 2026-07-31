@@ -1241,6 +1241,7 @@ body{
   pointer-events:none;transform-origin:50% 48%;will-change:transform,opacity,filter;
   animation:keypadvanish 2.65s cubic-bezier(.5,.03,.82,.22) forwards
 }
+#machine.fx-keypad-gone{visibility:hidden;opacity:0;transform:rotate(1110deg) scale(0)}
 #machine.fx-keypad-vanish::after{
   content:"";position:absolute;inset:-9%;z-index:100;pointer-events:none;border-radius:50%;
   background:repeating-conic-gradient(from 0deg,
@@ -2697,6 +2698,14 @@ function recordRapidClearPress(){
   rapidClearPresses=[]; machineVanished=true;
   S.busy=true; S.mode="vanished"; S.entry=""; highlight();
   machineEl.classList.add("fx-keypad-vanish");
+  const finishVanishing=()=>machineEl.classList.add("fx-keypad-gone");
+  const finishOnAnimationEnd=e=>{
+    if(e.animationName!=="keypadvanish") return;
+    machineEl.removeEventListener("animationend",finishOnAnimationEnd);
+    finishVanishing();
+  };
+  machineEl.addEventListener("animationend",finishOnAnimationEnd);
+  setTimeout(finishVanishing,2700);
   noise(1.2,.045,850);
   tone(690,.45,"sawtooth",.055,-260);
   setTimeout(()=>tone(170,1.1,"sawtooth",.05,-120),280);
@@ -3009,19 +3018,6 @@ function fit(){
 }
 addEventListener("resize",fit); addEventListener("orientationchange",()=>setTimeout(fit,120));
 fit(); renderHUD();
-
-/* Browser-only regression probe; inert unless the audit query string is present. */
-if(new URLSearchParams(location.search).has("auditKeypadVanish")){
-  const auditClear=document.querySelector('.key.clr');
-  for(let i=0;i<9;i++) auditClear.click();
-  document.body.dataset.vanishAfterNine=machineEl.classList.contains("fx-keypad-vanish");
-  auditClear.click();
-  document.body.dataset.vanishAfterTen=machineEl.classList.contains("fx-keypad-vanish");
-  setTimeout(()=>{
-    document.body.dataset.vanishPersists=machineEl.classList.contains("fx-keypad-vanish");
-    document.body.dataset.vanishOpacity=getComputedStyle(machineEl).opacity;
-  },2800);
-}
 
 /* prime audio on first gesture */
 ["pointerdown","keydown"].forEach(ev=>addEventListener(ev,()=>ac(),{once:true}));
