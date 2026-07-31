@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2a1c14">
+<title>Vending Machine Simulator</title>
+<style>
+/* ============================================================
+   VENDING MACHINE SIMULATOR — single file, no dependencies
+   Design canvas: 760 x 1210 px, scaled to fit the viewport.
+   ============================================================ */
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:#1b120c;
+  font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+  overflow-x:hidden;
+  color:#eee;
+  touch-action:manipulation;
+}
+
+/* ---------- room ---------- */
+#room{
+  position:fixed;inset:0;overflow:hidden;z-index:0;
+  background:
+    /* warm ceiling light pool */
+    radial-gradient(120% 60% at 55% -10%, rgba(255,214,150,.22), rgba(0,0,0,0) 60%),
+    linear-gradient(#3a2418 0 58%, #241610 58% 58.4%, #6a4526 58.4% 100%);
+}
+/* brick wall */
+#room::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:58%;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.42) 0 2px, rgba(0,0,0,0) 2px 34px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.34) 0 2px, rgba(0,0,0,0) 2px 76px),
+    linear-gradient(180deg,#5a2f21,#43231a);
+  background-size:auto,auto,auto;
+  opacity:.95;
+  box-shadow:inset 0 -40px 60px rgba(0,0,0,.55);
+}
+/* offset every other brick course */
+#room::after{
+  content:"";position:absolute;left:38px;right:0;top:0;height:58%;
+  background:repeating-linear-gradient(0deg,
+     rgba(0,0,0,0) 0 34px, rgba(0,0,0,.34) 34px 36px, rgba(0,0,0,0) 36px 68px);
+  background-position:0 17px;
+  pointer-events:none;opacity:.5;
+}
+/* wood floor */
+#floor{
+  position:absolute;left:0;right:0;bottom:0;height:42%;z-index:1;
+  background:
+    repeating-linear-gradient(96deg, rgba(0,0,0,.20) 0 1px, rgba(0,0,0,0) 1px 26px),
+    repeating-linear-gradient(4deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,0) 1px 120px),
+    linear-gradient(180deg,#8a5a2e,#5e3a1c);
+  box-shadow:inset 0 30px 50px rgba(0,0,0,.5);
+}
+/* ---------- stage / scaling ---------- */
+#viewport{position:relative;z-index:3;width:100%;display:flex;justify-content:center}
+#stage{flex:0 0 auto;width:760px;height:1210px;transform-origin:top center;position:relative}
+
+/* ============================================================
+   MACHINE SHELL
+   ============================================================ */
+:root{
+  --beige:#d6cbae;
+  --beige-lt:#efe7cf;
+  --beige-dk:#a89a78;
+  --beige-dkr:#7e7255;
+  --blue:#1f4fd8;
+  --blue-glow:#5b8cff;
+}
+#machine{
+  position:absolute;inset:0;
+  border-radius:14px 14px 6px 6px;
+  background:
+    linear-gradient(100deg, rgba(255,255,255,.28), rgba(0,0,0,0) 22%),
+    linear-gradient(180deg,#e3dabd,#cfc4a6 30%,#c2b795 70%,#a89b79);
+  box-shadow:
+     0 40px 70px rgba(0,0,0,.55),
+     inset 0 2px 0 rgba(255,255,255,.5),
+     inset -8px 0 22px rgba(0,0,0,.22);
+  display:flex;
+  padding:16px 14px 0 16px;
+  gap:12px;
+}
+/* the top service label */
+#servicetag{
+  width:100%;border-radius:2px;flex:0 0 auto;
+  background:linear-gradient(#fdfdf7,#e8e6d8);color:#333;
+  font-size:6.5px;line-height:1.45;text-align:center;padding:3px 2px;
+  box-shadow:0 1px 2px rgba(0,0,0,.3);
+}
+#servicetag b{font-size:8px;letter-spacing:.4px}
+
+/* ---------- LEFT: cabinet ---------- */
+#cabinet{flex:1 1 auto;display:flex;flex-direction:column;min-width:0}
+
+#glassframe{
+  position:relative;height:830px;border-radius:8px;
+  padding:10px;
+  background:linear-gradient(150deg,#b3a685,#8b7f60);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.25), inset 0 3px 10px rgba(0,0,0,.35);
+}
+#glass{
+  position:relative;height:100%;border-radius:4px;overflow:hidden;
+  background:linear-gradient(180deg,#100e0d,#191512);
+  box-shadow:inset 0 0 30px rgba(0,0,0,.9);
+  display:flex;flex-direction:column;
+}
+/* interior side rails */
+#glass::before,#glass::after{
+  content:"";position:absolute;top:0;bottom:0;width:26px;z-index:4;pointer-events:none;
+  background:linear-gradient(90deg,#4a4137,#241f19 60%,#0e0c0a);
+}
+#glass::before{left:0}
+#glass::after{right:0;transform:scaleX(-1)}
+
+#shelves{position:relative;flex:1 1 auto;display:flex;flex-direction:column;padding:40px 28px 0;z-index:2}
+
+.shelf{position:relative;flex:1 1 0;display:flex;flex-direction:column;min-height:0}
+.shelf .lit{
+  position:absolute;left:0;right:0;top:0;bottom:14px;pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,248,225,.16), rgba(255,248,225,.02) 55%);
+}
+.slots{position:relative;flex:1 1 auto;display:flex;align-items:flex-end;min-height:0;padding-bottom:2px}
+.slot{
+  position:relative;flex:1 1 0;height:100%;display:flex;align-items:flex-end;justify-content:center;
+  padding-bottom:3px;min-width:0;
+}
+/* the spiral vend coil in front of each column */
+/* ---- the vend coil: a helix in perspective, product nested in its turns ---- */
+.coil{position:absolute;left:0;right:0;bottom:1px;height:38%;pointer-events:none;
+  display:flex;align-items:flex-end;justify-content:center}
+.coil.back{z-index:1}      /* the turns that recede behind the product */
+.coil.front{z-index:3}     /* the single nearest turn, crossing the product */
+.coil.front .ring{
+  -webkit-mask:radial-gradient(closest-side,#0000 67%,#000 73%);
+          mask:radial-gradient(closest-side,#0000 67%,#000 73%);
+  filter:drop-shadow(1.5px 2px 2px rgba(0,0,0,.85));
+}
+.coilwrap{position:absolute;inset:0;transform:translateX(var(--shift,0))}
+.turn{
+  position:absolute;left:50%;bottom:0;width:var(--d);height:var(--d);
+  margin-left:calc(var(--d) / -2);
+  /* --c centres the helix in its slot; index 0 is the front turn (low, left) */
+  transform:translate(calc((var(--i) - var(--c)) * var(--px)), calc(var(--i) * var(--py)))
+            scale(calc(1 - .085 * var(--i)));
+  opacity:calc(1 - .13 * var(--i));
+  z-index:calc(20 - var(--i));
+}
+/* conic gradient + a punched-out middle = a metal ring whose specular
+   travels round the wire when the element rotates */
+.ring{
+  position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(from 200deg,
+    #0d0d0d 0 6%, #cfcfcf 12%, #4a4a4a 20%, #0a0a0a 38%,
+    #2e2e2e 54%, #9a9a9a 63%, #1a1a1a 74%, #0d0d0d 100%);
+  -webkit-mask:radial-gradient(closest-side,#0000 70%,#000 75%);
+          mask:radial-gradient(closest-side,#0000 70%,#000 75%);
+  filter:drop-shadow(1px 1.5px 1.5px rgba(0,0,0,.8));
+}
+/* dispensing: the wire turns and the whole thread marches forward */
+.coil.spin .ring{animation:ringspin .34s linear infinite}
+@keyframes ringspin{to{transform:rotate(360deg)}}
+.coil.spin .turn{
+  animation:advance .40s linear infinite;
+  animation-delay:calc(var(--i) / var(--n) * -.40s);
+}
+@keyframes advance{
+  0%{transform:translate(calc((var(--n) - var(--c)) * var(--px)), calc(var(--n) * var(--py)))
+              scale(calc(1 - .085 * var(--n)));opacity:0}
+  16%{opacity:.85}
+  84%{opacity:1}
+  100%{transform:translate(calc((-1 - var(--c)) * var(--px)), calc(-1 * var(--py)))
+              scale(1.085);opacity:0}
+}
+/* the front turn only ever sweeps the frontmost pitch, so nothing else
+   crosses the product while the coil is running */
+.coil.front.spin .turn{animation:advancefront .40s linear infinite;animation-delay:0s}
+@keyframes advancefront{
+  0%{transform:translate(calc((1 - var(--c)) * var(--px)), var(--py)) scale(.915);opacity:0}
+  22%{opacity:1}
+  82%{opacity:1}
+  100%{transform:translate(calc((-1 - var(--c)) * var(--px)), calc(-1 * var(--py)))
+              scale(1.085);opacity:0}
+}
+/* the product sits in the coil, with a contact shadow on the tray floor */
+.itemholder{transform-origin:50% 100%;z-index:2}
+.itemholder::after{
+  content:"";position:absolute;left:6%;right:6%;bottom:-4px;height:7px;border-radius:50%;
+  background:radial-gradient(closest-side ellipse,rgba(0,0,0,.75),rgba(0,0,0,0));
+}
+.itemholder.pushing{transform:translateY(7px) scale(1.045) rotate(1.5deg)}
+/* shelf front rail with price/code tags */
+.rail{
+  position:relative;height:16px;flex:0 0 16px;z-index:5;
+  background:linear-gradient(180deg,#2b2723,#141210 60%,#000);
+  box-shadow:0 2px 5px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.14);
+  display:flex;align-items:center;padding:0 2px;
+}
+.tag{
+  flex:1 1 0;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;
+  font:700 9px/1 "Arial Narrow",Arial,sans-serif;color:#f2f2ef;letter-spacing:.5px;
+  text-shadow:0 1px 1px #000;
+}
+.tag .price{color:#fff;font-weight:700;font-size:8px}
+.tag.out .code,.tag.out .price{color:#9a8d80;opacity:.65}
+.tag .sel{
+  padding:1px 3px;border-radius:2px;
+}
+.tag.active .sel{background:#ffd23a;color:#111;text-shadow:none;box-shadow:0 0 8px #ffd23a}
+
+/* glass reflections + door frame */
+#gloss{
+  position:absolute;inset:0;z-index:8;pointer-events:none;border-radius:4px;
+  background:
+    linear-gradient(112deg, rgba(255,255,255,.16) 0 8%, rgba(255,255,255,0) 26%),
+    linear-gradient(112deg, rgba(255,255,255,0) 40%, rgba(255,255,255,.10) 46% 49%, rgba(255,255,255,0) 55%),
+    radial-gradient(120% 60% at 20% 0%, rgba(190,220,255,.13), rgba(0,0,0,0) 60%);
+  mix-blend-mode:screen;
+}
+#glasslip{position:absolute;inset:0;z-index:9;pointer-events:none;border-radius:4px;
+  box-shadow:inset 0 0 0 3px rgba(20,18,15,.85), inset 0 0 22px rgba(0,0,0,.55)}
+
+/* interior stickers */
+.sticker{position:absolute;z-index:6;font-family:Arial,Helvetica,sans-serif;color:#222;
+  box-shadow:0 2px 6px rgba(0,0,0,.5);border-radius:2px}
+#sk-news{top:5px;left:30px;width:126px;padding:4px 5px;background:#fdfbf1;font-size:5px;line-height:1.3;
+  transform:rotate(-.6deg)}
+#sk-news b{display:block;text-align:center;color:#c0392b;font-size:7px;margin-bottom:1px}
+#sk-choose{top:4px;left:166px;width:92px;background:#fffdf4;padding:3px 4px;transform:rotate(.5deg)}
+#sk-choose h4{font-size:7.5px;text-align:center;color:#1d6b3a;margin-bottom:2px}
+#sk-choose .row{display:flex;align-items:center;gap:3px;font-size:5.2px;margin-bottom:1.5px}
+#sk-choose .sw{width:20px;height:7px;border-radius:1px}
+/* green cashless label, taped up beside the other notices */
+#sk-cash{
+  top:3px;right:30px;width:58px;padding:3px 2px;background:#1f8a4c;color:#fff;
+  font-size:4.2px;text-align:center;line-height:1.25;z-index:7;transform:rotate(-1deg);
+}
+#sk-cash b{display:block;font-size:6.4px;letter-spacing:.6px;margin-bottom:1px}
+#sk-cash .cards{display:flex;gap:1.5px;justify-content:center;margin:2px 0}
+#sk-cash .cards span{width:12px;height:8px;border-radius:1.5px;background:#fff;color:#222;
+  font-size:3.6px;font-weight:700;display:grid;place-items:center}
+
+/* ---------- dispense area ---------- */
+#dispense{
+  position:relative;flex:1 1 auto;margin-top:12px;border-radius:6px 6px 4px 4px;
+  background:linear-gradient(180deg,#d8ceb1,#c0b593 60%,#a29674);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.45), inset 0 -10px 18px rgba(0,0,0,.22);
+  padding:18px 26px 22px;
+  display:flex;align-items:flex-start;justify-content:center;
+  perspective:900px;
+}
+#bay{
+  position:relative;width:100%;height:186px;border-radius:4px;
+  background:#0b0a09;
+  box-shadow:inset 0 8px 20px rgba(0,0,0,.9), 0 2px 0 rgba(255,255,255,.28);
+  overflow:hidden;
+}
+#bayitem{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:150px;height:96px;
+  display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s}
+#bayitem.show{opacity:1}
+#door{
+  position:absolute;left:26px;right:26px;top:16px;height:186px;z-index:4;cursor:grab;
+  transform-origin:50% 100%;transition:transform .42s cubic-bezier(.22,1.2,.4,1);
+  border-radius:4px 4px 2px 2px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.35), rgba(0,0,0,0) 18%),
+    linear-gradient(180deg,#e2d9bc,#cec39f 55%,#b0a482);
+  box-shadow:0 6px 14px rgba(0,0,0,.45), inset 0 0 0 1.5px rgba(255,255,255,.35);
+  touch-action:none;
+}
+#door .louvers{position:absolute;left:14%;right:14%;top:26%;height:48%;border-radius:3px;
+  background:repeating-linear-gradient(180deg,
+    #b6aa88 0 5px, #cfc4a2 5px 7px, #e6ddc0 7px 9px, #b6aa88 9px 14px);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.4), 0 1px 0 rgba(255,255,255,.4)}
+#door .push{
+  position:absolute;left:0;right:0;bottom:6px;text-align:center;
+  font:700 9px/1 Arial;letter-spacing:2px;color:#6e6449;opacity:.75;transition:color .2s}
+#door.ready .push{color:#8a6510;opacity:1}
+#door.pushed{transform:rotateX(-62deg)}
+#door.ready::after{
+  content:"";position:absolute;inset:-3px;border-radius:6px;pointer-events:none;
+  box-shadow:0 0 0 2px rgba(255,210,58,.9), 0 0 26px rgba(255,210,58,.6);
+  animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 2px rgba(255,210,58,.35), 0 0 10px rgba(255,210,58,.25)}}
+
+/* bamboo: a screen print on the cabinet panel below the tray — flat ink,
+   no depth, multiplied into the beige so the panel's shading reads through */
+#bamboo{
+  position:absolute;left:36px;right:36px;top:232px;bottom:22px;z-index:3;
+  transform:rotate(180deg);
+  opacity:.82;mix-blend-mode:multiply;pointer-events:none;
+}
+/* lower front panel of the cabinet, below the tray */
+#basepanel{
+  position:absolute;left:26px;right:26px;top:226px;bottom:16px;border-radius:4px;z-index:1;
+  background:linear-gradient(180deg,#d4caad,#bfb492 60%,#a89c79);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35), inset 0 3px 8px rgba(0,0,0,.16),
+             0 2px 5px rgba(0,0,0,.22);
+}
+
+
+/* ============================================================
+   RIGHT: CONTROL COLUMN
+   ============================================================ */
+#console{
+  position:relative;flex:0 0 214px;display:flex;flex-direction:column;align-items:center;
+  gap:11px;padding:10px 8px 18px;border-radius:8px;
+  background:
+    linear-gradient(100deg, rgba(255,255,255,.3), rgba(0,0,0,0) 30%),
+    linear-gradient(180deg,#ded4b7,#cabf9d 45%,#b5a984);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4), -6px 0 16px rgba(0,0,0,.22);
+}
+/* recessed bezel used by each module */
+.bezel{
+  position:relative;width:100%;border-radius:8px;padding:8px;
+  background:linear-gradient(180deg,#cdc2a1,#bdb28f);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -2px 4px rgba(0,0,0,.18),
+             0 2px 4px rgba(0,0,0,.18);
+}
+
+/* ---------- card reader ---------- */
+#reader{
+  width:100%;border-radius:7px;padding:9px 9px 12px;cursor:pointer;
+  background:linear-gradient(180deg,#4a4a4a,#232323 40%,#141414);
+  box-shadow:0 3px 8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.22);
+}
+#reader .strip{display:flex;gap:3px;align-items:center;margin-bottom:6px}
+#reader .strip .pill{height:7px;border-radius:1px;flex:1 1 0;font-size:4px;color:#111;
+  display:grid;place-items:center;font-weight:700}
+#readerled{width:7px;height:7px;border-radius:50%;background:#59f;box-shadow:0 0 8px #59f;flex:0 0 7px;
+  animation:blip 1.6s linear infinite}
+@keyframes blip{0%,70%{opacity:1}85%{opacity:.25}100%{opacity:1}}
+
+/* the yellow-outlined LCD */
+#lcd{
+  position:relative;height:84px;border-radius:3px;overflow:hidden;
+  border:2.5px solid #f2c218;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(90,255,190,.10), rgba(0,0,0,0) 70%),
+    linear-gradient(180deg,#0a2418,#04120c);
+  box-shadow:0 0 0 1px #000, inset 0 0 16px rgba(0,255,140,.16),
+             0 0 10px rgba(242,194,24,.25);
+}
+#lcd .scene{position:absolute;inset:0;opacity:0;transition:opacity .3s linear;
+  display:grid;place-items:center;pointer-events:none}
+#lcd .scene.on{opacity:1}
+#lcd .cap{position:absolute;bottom:4px;left:0;right:0;text-align:center;
+  font:700 7.5px/1 Arial;letter-spacing:.8px;color:#a8ffd2;
+  text-shadow:0 0 7px rgba(90,255,180,.95)}
+#lcd .status{position:absolute;inset:0;display:none;place-items:center;text-align:center;
+  font:800 11px/1.5 Arial;color:#b6ffdb;text-shadow:0 0 9px rgba(90,255,180,.85);letter-spacing:1px}
+#lcd.busy .scene{opacity:0}
+#lcd.busy .status{display:grid}
+.lcdwrap{width:100%;height:100%;position:relative;display:grid;place-items:center}
+.lcdart{filter:drop-shadow(0 0 5px rgba(90,255,180,.7));margin-top:-6px}
+/* tap scene: hand approaching a contactless glyph */
+.handsvg{animation:tapmove 1.6s ease-in-out infinite}
+@keyframes tapmove{0%,100%{transform:translate(16px,10px)}50%{transform:translate(2px,0)}}
+.cardsvg{animation:cardin 2.4s ease-in-out infinite}
+@keyframes cardin{0%,12%{transform:translate(30px,8px)}58%,100%{transform:translate(0,0)}}
+.wave{animation:waveglow 1.6s ease-in-out infinite}
+.wave:nth-child(2){animation-delay:.18s}
+.wave:nth-child(3){animation-delay:.36s}
+@keyframes waveglow{0%,100%{opacity:.22}50%{opacity:1}}
+.brandgrid{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;width:92%;margin-top:-8px}
+.brandgrid span{width:32px;height:17px;border-radius:2px;display:grid;place-items:center;
+  font:800 6px/1 Arial;letter-spacing:.3px;box-shadow:0 1px 2px rgba(0,0,0,.6)}
+
+/* ---------- VFD ---------- */
+#vfdshell{width:100%;border-radius:6px;padding:6px;
+  background:linear-gradient(180deg,#c6bb99,#a89c7a);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 2px 4px rgba(0,0,0,.2)}
+#vfd{
+  height:40px;border-radius:3px;display:grid;place-items:center;text-align:center;padding:2px 4px;
+  background:linear-gradient(180deg,#1130c9,#0b1f8e 60%,#0a1a72);
+  box-shadow:inset 0 0 12px rgba(0,0,0,.6), 0 0 12px rgba(40,90,255,.55), inset 0 0 0 1px #06103f;
+  font:700 12px/1.15 "Arial Narrow",Arial,sans-serif;letter-spacing:1.4px;color:#eaf1ff;
+  text-shadow:0 0 6px rgba(190,215,255,.95),0 0 14px rgba(90,140,255,.8);
+  white-space:pre-line;
+}
+#vfd.alert{animation:vfdflash .35s steps(1) 4}
+@keyframes vfdflash{50%{color:#ffd9d9;text-shadow:0 0 8px #ff9a9a}}
+
+/* ---------- bill acceptor ---------- */
+#billunit{width:100%;border-radius:6px;padding:6px 8px 8px;cursor:pointer;
+  background:linear-gradient(180deg,#3b3b3b,#1c1c1c);
+  box-shadow:0 3px 7px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.2)}
+#billunit .top{display:flex;justify-content:space-between;align-items:center;
+  font:700 4.6px/1 Arial;color:#cfcfcf;margin-bottom:4px;letter-spacing:.3px}
+#billunit .top .bl{width:24px;height:8px;background:#e8e8e8;border-radius:1px;color:#111;
+  font-size:4px;display:grid;place-items:center}
+#billsticker{
+  position:relative;height:34px;border-radius:2px;overflow:hidden;
+  background:linear-gradient(180deg,#1ec7c7,#0e9a9a);
+  box-shadow:inset 0 0 0 1.5px #073c3c;
+  display:grid;place-items:center;
+}
+#billsticker .txt{font:800 13px/1 Arial;color:#0a2222;letter-spacing:.5px;text-align:center}
+#billsticker .txt em{display:block;font-style:normal;color:#fff;font-size:15px;
+  text-shadow:0 1px 1px rgba(0,0,0,.35)}
+#billsticker .demo{position:absolute;left:6px;top:5px;animation:billpush 2.6s ease-in-out infinite}
+@keyframes billpush{0%,15%{transform:translateX(0);opacity:1}60%{transform:translateX(26px);opacity:.15}
+  61%,100%{transform:translateX(0);opacity:1}}
+#billslot{position:relative;height:13px;margin-top:5px;border-radius:2px;
+  background:linear-gradient(180deg,#000,#2a2a2a 40%,#111);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.15)}
+#billslot::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:74%;height:3px;border-radius:2px;background:#0a0a0a;box-shadow:inset 0 1px 2px #000}
+#billled{position:absolute;right:6px;top:4px;width:5px;height:5px;border-radius:50%;
+  background:#4af;box-shadow:0 0 7px #4af}
+
+/* ---------- big round lights 1 / 2 / 3 ---------- */
+.lightrow{width:100%;display:flex;align-items:center;gap:10px}
+.bigbtn{
+  position:relative;width:44px;height:44px;flex:0 0 44px;border-radius:50%;cursor:pointer;
+  border:none;display:grid;place-items:center;
+  background:radial-gradient(circle at 34% 28%, #9fb7e6, #3b5aa8 55%, #16265c);
+  box-shadow:0 3px 6px rgba(0,0,0,.45), inset 0 -3px 6px rgba(0,0,0,.45),
+             inset 0 3px 6px rgba(255,255,255,.35);
+  color:#0b1642;font:800 22px/1 Arial;text-shadow:0 1px 0 rgba(255,255,255,.35);
+  transition:box-shadow .18s, color .18s, background .18s;
+}
+.bigbtn::after{content:"";position:absolute;left:22%;top:12%;width:42%;height:26%;border-radius:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,0));pointer-events:none}
+.bigbtn.lit{
+  background:radial-gradient(circle at 34% 28%, #dfeaff, #3f7bff 48%, #1436b4);
+  color:#f4f9ff;text-shadow:0 0 8px #cfe0ff;
+  box-shadow:0 0 18px rgba(70,130,255,.95), 0 0 42px rgba(70,130,255,.5),
+             inset 0 -3px 6px rgba(0,0,0,.3), inset 0 3px 8px rgba(255,255,255,.5);
+}
+.bigbtn:active{transform:translateY(1px)}
+.bigwrap{position:relative;width:100%;display:flex;justify-content:center}
+
+/* coin slot */
+#coinslot{
+  position:relative;flex:0 0 62px;height:44px;border-radius:6px;cursor:pointer;
+  background:linear-gradient(180deg,#cfc4a2,#b3a884);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 2px 3px rgba(0,0,0,.2);
+  display:grid;place-items:center;
+}
+#coinslot .mouth{width:7px;height:26px;border-radius:4px;
+  background:linear-gradient(90deg,#000,#3a3a3a 45%,#0a0a0a);
+  box-shadow:inset 0 0 4px #000, 0 1px 0 rgba(255,255,255,.35)}
+#coinslot .lbl{position:absolute;bottom:2px;font:700 5.5px/1 Arial;color:#6e6449;letter-spacing:.6px}
+
+/* ---------- keypad ---------- */
+#keypadblock{width:100%;border-radius:12px;padding:9px;
+  background:linear-gradient(180deg,#d3c8a7,#b9ae8b);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -3px 6px rgba(0,0,0,.2),
+             0 2px 5px rgba(0,0,0,.22)}
+#keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.key{
+  position:relative;aspect-ratio:1/1;border-radius:50%;border:none;cursor:pointer;
+  background:radial-gradient(circle at 34% 28%, #6f83b4, #2b3c74 55%, #101c46);
+  box-shadow:0 2px 4px rgba(0,0,0,.45), inset 0 -2px 4px rgba(0,0,0,.5),
+             inset 0 2px 4px rgba(255,255,255,.28);
+  color:#c9d6f5;font:800 15px/1 Arial;display:grid;place-items:center;
+  transition:box-shadow .15s,color .15s,background .15s,transform .06s;
+}
+.key.lit{
+  background:radial-gradient(circle at 34% 28%, #e2ecff, #4b83ff 48%, #1a3fbd);
+  color:#fff;text-shadow:0 0 6px #d6e5ff;
+  box-shadow:0 0 12px rgba(75,131,255,.9), inset 0 -2px 4px rgba(0,0,0,.28),
+             inset 0 2px 5px rgba(255,255,255,.45);
+}
+.key.press{transform:scale(.93);box-shadow:0 0 16px rgba(140,190,255,1), inset 0 2px 6px rgba(0,0,0,.5)}
+.key.clr{color:#ffb4a8;font-size:14px}
+#okkey{
+  margin-top:7px;width:100%;height:34px;border-radius:17px;border:none;cursor:pointer;
+  background:linear-gradient(180deg,#3d3f47,#1b1d23 60%,#0e1014);
+  box-shadow:0 3px 6px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.28);
+  color:#e9eefc;font:800 15px/1 Arial;letter-spacing:3px;display:grid;place-items:center;
+  transition:box-shadow .15s,color .15s}
+#okkey.lit{color:#fff;text-shadow:0 0 8px #9fc0ff;
+  box-shadow:0 0 16px rgba(90,150,255,.8), inset 0 1px 0 rgba(255,255,255,.35)}
+#okkey:active{transform:translateY(1px)}
+#okkey .chk{margin-right:6px;font-size:12px;opacity:.9}
+
+/* ---------- coin return ---------- */
+#returnwrap{width:100%;border-radius:8px;padding:8px;
+  background:linear-gradient(180deg,#cdc2a1,#b6ab88);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 2px 4px rgba(0,0,0,.2)}
+#cointray{
+  position:relative;height:38px;border-radius:3px 3px 8px 8px;cursor:pointer;
+  background:linear-gradient(180deg,#0d0c0b,#2b2823 30%,#d7ccae 32%,#b3a884);
+  box-shadow:inset 0 6px 10px rgba(0,0,0,.75), 0 1px 0 rgba(255,255,255,.4);
+  overflow:hidden;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding-bottom:4px;
+}
+#cointray.has{box-shadow:inset 0 6px 10px rgba(0,0,0,.75),0 0 0 2px rgba(255,210,58,.9),0 0 20px rgba(255,210,58,.5)}
+.coin{
+  width:15px;height:15px;border-radius:50%;font:700 5.5px/1 Arial;display:grid;place-items:center;
+  color:#3a3a34;animation:drop .35s cubic-bezier(.3,1.5,.5,1) both;
+  background:radial-gradient(circle at 34% 28%,#f2f2ec,#b9b9ae 60%,#7e7e75);
+  box-shadow:0 1px 2px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.4);
+}
+.coin.c25{width:17px;height:17px}
+.coin.c05{width:14px;height:14px}
+.coin.c10{width:12px;height:12px}
+.coin.c100{background:radial-gradient(circle at 34% 28%,#ffe9a8,#d0a54a 60%,#8f6a1e);color:#4a3510}
+@keyframes drop{from{transform:translateY(-26px) rotate(-40deg);opacity:0}}
+#returnlbl{text-align:center;font:700 6px/1 Arial;color:#6e6449;letter-spacing:.8px;margin-top:4px}
+#coinbtn{
+  position:absolute;right:6px;top:-1px;width:26px;height:9px;border-radius:2px;cursor:pointer;z-index:3;
+  background:linear-gradient(180deg,#e9e9e4,#9d9d95);box-shadow:0 1px 2px rgba(0,0,0,.6)}
+
+/* ============================================================
+   SNACK ART
+   ============================================================ */
+.pk{position:relative;transform-origin:50% 100%;--u:1px;
+  filter:drop-shadow(0 5px 5px rgba(0,0,0,.65))}
+.pk *{position:absolute}
+
+/* --- pillow / chip bag --- */
+.bag{width:100%;height:100%}
+.bag .body{
+  inset:0;border-radius:7px/11px;
+  background:
+    /* left + right barrel shading makes the flat div read as a puffed pillow bag */
+    linear-gradient(90deg, rgba(0,0,0,.45) 0, rgba(0,0,0,.10) 8%, rgba(255,255,255,.20) 24%,
+      rgba(255,255,255,.06) 46%, rgba(0,0,0,.12) 74%, rgba(0,0,0,.30) 92%, rgba(0,0,0,.5)),
+    linear-gradient(178deg, var(--c1), var(--c2) 58%, var(--c3));
+  box-shadow:inset 0 0 12px rgba(0,0,0,.30);
+}
+/* metallic vertical creases — subtle, or the print washes out */
+.bag .creases{inset:0;border-radius:7px/11px;opacity:.20;
+  background:repeating-linear-gradient(90deg,
+    rgba(255,255,255,.22) 0 1px, rgba(255,255,255,0) 1px 8px,
+    rgba(0,0,0,.22) 8px 9px, rgba(255,255,255,0) 9px 17px)}
+.bag .crimp{left:0;right:0;height:calc(8 * var(--u));
+  background:repeating-linear-gradient(90deg, rgba(0,0,0,.45) 0 1.5px, rgba(255,255,255,.30) 1.5px 3px);
+  filter:saturate(.35) brightness(.92);opacity:.85}
+.bag .crimp.t{top:0;border-radius:7px 7px 0 0}
+.bag .crimp.b{bottom:0;border-radius:0 0 7px 7px}
+.bag .brand{
+  left:5%;right:5%;top:11%;text-align:center;font-weight:900;letter-spacing:-.4px;
+  color:var(--tc,#fff);text-shadow:0 1.5px 0 rgba(0,0,0,.32),0 0 7px rgba(0,0,0,.30);
+  font-size:calc(var(--bs,15) * var(--u));line-height:.95;
+  font-family:Impact,"Arial Black",Arial,sans-serif;
+}
+.bag .brand.script{font-family:Georgia,serif;font-style:italic;font-weight:700;letter-spacing:0}
+.bag .flav{
+  left:7%;right:7%;top:28%;text-align:center;font:800 calc(5.2 * var(--u))/1.1 Arial;letter-spacing:.3px;
+  color:var(--fc,#fff2c8);text-transform:uppercase;text-shadow:0 1px 1px rgba(0,0,0,.45)}
+.bag .swoosh{left:-8%;right:-8%;top:38%;height:14%;
+  background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,0));
+  border-radius:50%;transform:rotate(-4deg);opacity:.35}
+/* the product "photograph" — sits above the coil so it stays visible */
+.bag .food{left:9%;right:9%;top:43%;bottom:8%;border-radius:46% 46% 42% 42%;overflow:hidden;
+  box-shadow:0 2px 5px rgba(0,0,0,.4)}
+.bag .gl{inset:0;border-radius:7px/11px;pointer-events:none;
+  background:linear-gradient(112deg,rgba(255,255,255,.26) 0 9%,rgba(255,255,255,0) 28%,
+    rgba(255,255,255,0) 64%,rgba(255,255,255,.14) 75%,rgba(255,255,255,0) 88%)}
+.bag .nw{right:7%;bottom:2%;font:700 calc(4 * var(--u))/1 Arial;color:rgba(255,255,255,.75);z-index:2}
+
+/* photorealistic-ish potato chips */
+/* --- the product "photo": a pile of individually drawn pieces --- */
+.pile{overflow:hidden;background:linear-gradient(180deg,#3d2c14,#1c1207)}
+.pile.light{background:linear-gradient(180deg,#6b5334,#3a2b17)}
+.ch{
+  border-radius:48% 52% 44% 56% / 50% 46% 54% 50%;
+  background:
+    radial-gradient(circle at 62% 72%, rgba(0,0,0,.22), rgba(0,0,0,0) 60%),
+    radial-gradient(circle at 34% 26%, var(--h) 0 18%, var(--m) 56%, var(--d) 98%);
+  box-shadow:0 1px 2px rgba(0,0,0,.6), inset 0 0 3px rgba(255,255,255,.35);
+  --h:#fff4d4;--m:#e8b45c;--d:#a4701f;
+}
+/* gently ruffled edge — a fried chip, not an egg and not a shard */
+.ch.potato,.ch.kettle{
+  clip-path:polygon(100% 50%,92% 67.4%,85.4% 85.4%,67.4% 92%,50% 100%,32.6% 92%,
+    14.6% 85.4%,8% 67.4%,0% 50%,8% 32.6%,14.6% 14.6%,32.6% 8%,
+    50% 0%,67.4% 8%,85.4% 14.6%,92% 32.6%);
+  border-radius:0;
+}
+/* blistered spots — the giveaway texture of a fried chip up close */
+.ch.potato::after,.ch.kettle::after{
+  content:"";position:absolute;inset:0;
+  background-image:
+    radial-gradient(circle at 32% 62%, rgba(126,74,20,.34) 0 7%, rgba(0,0,0,0) 8%),
+    radial-gradient(circle at 63% 37%, rgba(126,74,20,.30) 0 6%, rgba(0,0,0,0) 7%),
+    radial-gradient(circle at 48% 78%, rgba(126,74,20,.26) 0 5%, rgba(0,0,0,0) 6%);
+}
+.ch.potato{--h:#ffeeba;--m:#eab55a;--d:#a06e20}
+.ch.kettle{--h:#ffe4a6;--m:#d89b40;--d:#8a5b16;
+  clip-path:polygon(98% 47%,91% 66%,84% 87%,65% 90%,50% 99%,30% 93%,
+    16% 84%,7% 66%,1% 48%,9% 30%,17% 13%,34% 9%,
+    52% 1%,68% 9%,86% 16%,93% 31%)}
+.ch.corn{--h:#fff4bb;--m:#f4d05e;--d:#bd921e;border-radius:36% 36% 44% 44%/58% 58% 42% 42%}
+.ch.cheese{--h:#ffd396;--m:#f7963a;--d:#b45a0c;border-radius:46%/52%}
+.ch.tortilla{--h:#ffe3a6;--m:#dfa251;--d:#9c6820;clip-path:polygon(50% 3%,97% 95%,3% 95%);
+  border-radius:0;box-shadow:0 1px 2px rgba(0,0,0,.6)}
+.ch.pita{--h:#fff0cd;--m:#e3c07c;--d:#a5833c;clip-path:polygon(50% 4%,96% 93%,4% 93%);
+  border-radius:0;box-shadow:0 1px 2px rgba(0,0,0,.55)}
+.ch.pop{--h:#ffffff;--m:#f6efdd;--d:#cabe9c;
+  border-radius:54% 46% 58% 42% / 46% 58% 42% 54%}
+.ch.cracker{--h:#ffd589;--m:#ed9f31;--d:#ac600c;border-radius:2.5px}
+.ch.cookie{--h:#c9945a;--m:#95612b;--d:#583714;border-radius:50%}
+.ch.oreo{--h:#3a3036;--m:#211a1e;--d:#0d0a0c;border-radius:50%}
+.ch.nut{--h:#f4d9ab;--m:#cc9558;--d:#8a5c27;border-radius:50% 50% 44% 44%/58% 58% 42% 42%}
+.ch.peanut{--h:#f7e0b4;--m:#d4a468;--d:#96682f;border-radius:44% 44% 48% 48%/62% 62% 38% 38%}
+.ch.raisin{--h:#7a5468;--m:#42222f;--d:#1d0d14;border-radius:50% 50% 46% 46%/56% 56% 44% 44%}
+.ch.mnut{--h:#a8d68a;--m:#5f8f4a;--d:#33572a;border-radius:50%}
+.ch.cran{--h:#d4667a;--m:#a8332f;--d:#651316;border-radius:50%}
+.ch.jelly{--h:#ffe9f2;--m:#f2a0c0;--d:#b2547f;border-radius:50%}
+.ch.jelly.b{--h:#fff6c8;--m:#f2d05e;--d:#b08f16}
+.ch.jelly.c{--h:#d8f2c8;--m:#8ecb6a;--d:#4f8a35}
+.ch.meat{--h:#7e3a26;--m:#4c1c10;--d:#240f07;border-radius:3px/6px}
+.ch.meat::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:repeating-linear-gradient(94deg,
+    rgba(255,255,255,.16) 0 1px, rgba(0,0,0,.22) 1px 3px, rgba(0,0,0,0) 3px 6px)}
+/* chocolate, wafer, cups, coated lentils, mint pellets */
+.ch.choc{--h:#8a5a34;--m:#5a3418;--d:#2e1a09;border-radius:2px;
+  box-shadow:0 1px 2px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.28),
+             inset 0 -1px 0 rgba(0,0,0,.4)}
+.ch.wafer{--h:#e8c98e;--m:#b98a4a;--d:#6b4a1c;border-radius:1.5px}
+.ch.wafer::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(90deg,rgba(90,52,20,.85) 0 16%,rgba(0,0,0,0) 17% 83%,
+    rgba(90,52,20,.85) 84%)}
+.ch.cup{--h:#7a4a22;--m:#4e2c10;--d:#281404;border-radius:50%}
+.ch.cup::after{content:"";position:absolute;inset:14%;border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.14) 0 4deg,rgba(0,0,0,.18) 4deg 8deg)}
+.ch.lentil{--h:#fff;--m:#c8302a;--d:#7d1410;border-radius:50%}
+.ch.lentil::after{content:"";position:absolute;left:22%;top:16%;width:34%;height:24%;
+  border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,0))}
+.ch.lentil.b{--m:#2f5fd0;--d:#123a94}
+.ch.lentil.g{--m:#3f9e46;--d:#166b22}
+.ch.lentil.y{--m:#f2c218;--d:#a8820a}
+.ch.lentil.n{--m:#8a5a34;--d:#4a2c12}
+.ch.lentil.o{--m:#ec8b1c;--d:#a35606}
+.ch.pellet{--h:#ffffff;--m:#eef6fb;--d:#b9cfdd;border-radius:3px/5px;
+  box-shadow:0 1px 2px rgba(0,0,0,.45), inset 0 0 3px rgba(160,210,240,.7)}
+.ch.almond{--h:#f0dcb4;--m:#c69a62;--d:#8a6330;
+  border-radius:50% 50% 46% 46%/64% 64% 36% 36%}
+.ch.coco{--h:#ffffff;--m:#f2ece0;--d:#c9bfa8;border-radius:2px/4px}
+.ch.swirl{--h:#f6dda6;--m:#d5a259;--d:#96682c;border-radius:50%}
+.ch.swirl::after{content:"";position:absolute;inset:22%;border-radius:50%;
+  background:radial-gradient(circle,#b0743a,#8a5624);opacity:.8}
+
+/* --- candy bar --- */
+.bar{width:100%;height:100%}
+.bar .creases{inset:0;border-radius:3px;opacity:.16;
+  background:repeating-linear-gradient(90deg,
+    rgba(255,255,255,.3) 0 1px, rgba(255,255,255,0) 1px 6px,
+    rgba(0,0,0,.3) 6px 7px, rgba(255,255,255,0) 7px 13px)}
+.bar .band{left:-12%;right:-12%;top:22%;height:26%;transform:rotate(-7deg);
+  background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,.06) 60%,
+    rgba(0,0,0,.14));border-radius:50%/40%}
+.bar .sub{margin-top:calc(2 * var(--u));text-align:center;
+  font:800 calc(4.4 * var(--u))/1.15 Arial;letter-spacing:.4px;
+  color:var(--sc,rgba(255,255,255,.85));text-transform:uppercase}
+.bar .photo{left:9%;right:9%;top:52%;bottom:7%;border-radius:3px;overflow:hidden;
+  box-shadow:0 2px 4px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.14)}
+
+.bar .body{inset:0;border-radius:3px;
+  background:
+    linear-gradient(100deg, rgba(255,255,255,.45) 0 7%, rgba(255,255,255,0) 26%),
+    linear-gradient(255deg, rgba(255,255,255,.28) 0 6%, rgba(255,255,255,0) 22%),
+    linear-gradient(170deg, var(--c1), var(--c2) 60%, var(--c3));
+  box-shadow:inset 0 0 10px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.6)}
+.bar .seam{left:0;right:0;height:6px;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.35) 0 1px,rgba(255,255,255,.3) 1px 2.5px)}
+.bar .seam.t{top:0}.bar .seam.b{bottom:0}
+.bar .txt{left:2%;right:2%;top:21%;text-align:center}
+.bar .txt > *{position:static}
+.bar .name{text-align:center;
+  font:900 calc(12 * var(--u))/1.02 Impact,"Arial Black",Arial;
+  color:var(--tc,#fff);letter-spacing:-.3px;text-shadow:0 1px 1px rgba(0,0,0,.55)}
+.bar .name.sm{font-size:calc(9 * var(--u))}
+.bar .name.script{font-family:Georgia,serif;font-style:italic;font-weight:700}
+.bar .gl{inset:0;border-radius:3px;
+  background:linear-gradient(100deg,rgba(255,255,255,.3) 0 12%,rgba(255,255,255,0) 34%,
+   rgba(255,255,255,.14) 62%,rgba(255,255,255,0) 80%)}
+
+/* --- clear pouch (nuts / trail mix) --- */
+.pouch{width:100%;height:100%}
+.pouch .body{inset:0;border-radius:5px/8px;
+  background:
+    linear-gradient(100deg,rgba(255,255,255,.4) 0 8%,rgba(255,255,255,0) 30%),
+    linear-gradient(180deg,rgba(255,255,255,.16),rgba(230,235,240,.10));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.35), inset 0 0 12px rgba(0,0,0,.25)}
+.pouch .fill{left:5%;right:5%;bottom:7%;top:33%;border-radius:6px/10px;overflow:hidden;
+  box-shadow:inset 0 0 8px rgba(0,0,0,.5)}
+.pouch .label{left:0;right:0;top:7%;height:26%;
+  background:linear-gradient(180deg,var(--c1),var(--c2));
+  box-shadow:0 1px 3px rgba(0,0,0,.5);display:grid;place-items:center}
+.pouch .label span{position:static;font:900 calc(9 * var(--u))/1 Impact,"Arial Black",Arial;color:var(--tc,#fff);
+  letter-spacing:-.2px;text-shadow:0 1px 1px rgba(0,0,0,.5);text-align:center;padding:0 2px}
+.pouch .gl{inset:0;border-radius:5px/8px;
+  background:linear-gradient(112deg,rgba(255,255,255,.34) 0 10%,rgba(255,255,255,0) 32%,
+   rgba(255,255,255,.2) 66%,rgba(255,255,255,0) 84%)}
+.nuts{inset:0;
+  background-image:
+    radial-gradient(closest-side circle at 20% 22%, #e8c184 0 60%, #b5854a 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 52% 16%, #d9a55f 0 60%, #9a6c33 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 80% 26%, #f0d3a0 0 60%, #bb8f55 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 32% 50%, #cf9755 0 60%, #8f6230 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 66% 52%, #e6c48c 0 60%, #a97b41 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 16% 76%, #dcb072 0 60%, #96683a 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 46% 82%, #eecf9b 0 60%, #ac7f45 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 80% 76%, #d29d5c 0 60%, #8d6231 85%, rgba(0,0,0,0)),
+    linear-gradient(180deg,#a9814b,#7d5c33);
+  background-size:36% 36%,34% 34%,35% 35%,37% 37%,35% 35%,34% 34%,36% 36%,35% 35%,auto;
+  background-repeat:no-repeat;
+}
+.nuts.mix{
+  background-image:
+    radial-gradient(closest-side circle at 18% 20%, #f3e0b0 0 60%, #c0a267 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 50% 15%, #9c3f57 0 60%, #63202f 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 82% 24%, #e2b06a 0 60%, #a97b3c 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 30% 48%, #5f8f4a 0 60%, #37592b 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 64% 50%, #f0dfae 0 60%, #bda86f 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 15% 74%, #a8452e 0 60%, #6d2618 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 48% 80%, #d8b273 0 60%, #9e7b41 85%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 80% 74%, #4d7a3d 0 60%, #2f4a24 85%, rgba(0,0,0,0)),
+    linear-gradient(180deg,#b08c53,#856239);
+  background-size:36% 36%,32% 32%,35% 35%,36% 36%,34% 34%,33% 33%,35% 35%,34% 34%,auto;
+  background-repeat:no-repeat;
+}
+.nuts.pea{filter:saturate(1.05) brightness(1.02)}
+
+/* --- jerky pouch --- */
+.jerky{width:100%;height:100%}
+.jerky .body{inset:0;border-radius:4px/7px;
+  background:
+    linear-gradient(100deg,rgba(255,255,255,.20) 0 7%,rgba(255,255,255,0) 26%),
+    repeating-linear-gradient(88deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.05) 1px 4px),
+    linear-gradient(170deg,#4a3524,#2b1d11 58%,#150e07);
+  box-shadow:inset 0 0 12px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.7)}
+.jerky .banner{left:0;right:0;top:19%;height:15%;
+  background:linear-gradient(180deg,#f0c96b,#c8942c 55%,#8d6212);
+  box-shadow:0 1px 3px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.45)}
+.jerky .badge{right:5%;bottom:9.5%;padding:0;width:calc(20 * var(--u));height:calc(9 * var(--u));
+  border-radius:1.5px;background:#a8140f;box-shadow:0 1px 2px rgba(0,0,0,.6);
+  font:800 calc(4 * var(--u))/calc(9 * var(--u)) Arial;color:#fff;text-align:center;
+  letter-spacing:.3px}
+.jerky .zip{left:6%;right:6%;top:11%;height:calc(4 * var(--u));border-radius:2px;
+  background:linear-gradient(180deg,#cfc7b6,#8c8478);box-shadow:0 1px 2px rgba(0,0,0,.6)}
+.jerky .brand{left:4%;right:4%;top:20.5%;text-align:center;
+  font:900 calc(10 * var(--u))/1.25 Impact,"Arial Black",Arial;
+  color:#3b2408;letter-spacing:-.3px;text-shadow:0 1px 0 rgba(255,255,255,.35)}
+.jerky .flav{left:4%;right:4%;top:38%;text-align:center;font:800 calc(5.5 * var(--u))/1 Arial;color:#e0b877;
+  letter-spacing:.6px;text-transform:uppercase}
+.jerky .win{left:11%;right:11%;top:49%;bottom:7%;border-radius:4px;overflow:hidden;
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28), 0 2px 4px rgba(0,0,0,.5);
+  background:linear-gradient(180deg,#3a1c10,#1d0d06)}
+.jerky .gl{inset:0;border-radius:4px/7px;
+  background:linear-gradient(112deg,rgba(255,255,255,.22) 0 9%,rgba(255,255,255,0) 30%,
+   rgba(255,255,255,.12) 68%,rgba(255,255,255,0) 84%)}
+
+/* --- rigid pack (cookies, gum, pastry) --- */
+.pack{width:100%;height:100%}
+.pack .body{inset:0;border-radius:3px;
+  background:
+    linear-gradient(100deg,rgba(255,255,255,.4) 0 8%,rgba(255,255,255,0) 28%),
+    linear-gradient(170deg,var(--c1),var(--c2) 62%,var(--c3));
+  box-shadow:inset 0 0 10px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.6)}
+.pack .brand{left:4%;right:4%;top:11%;text-align:center;
+  font:900 calc(11 * var(--u))/1 Impact,"Arial Black",Arial;
+  color:var(--tc,#fff);letter-spacing:-.3px;text-shadow:0 1px 1px rgba(0,0,0,.5)}
+.pack .brand.script{font-family:Georgia,serif;font-style:italic;font-weight:700;letter-spacing:0}
+.pack .flav{left:6%;right:6%;top:28%;text-align:center;font:800 calc(5.2 * var(--u))/1.15 Arial;
+  color:var(--fc,rgba(255,255,255,.9));letter-spacing:.5px;text-transform:uppercase}
+.pack .food{left:13%;right:13%;top:42%;bottom:8%;border-radius:4px;overflow:hidden;
+  box-shadow:0 2px 4px rgba(0,0,0,.45)}
+.pack .gl{inset:0;border-radius:3px;
+  background:linear-gradient(112deg,rgba(255,255,255,.3) 0 10%,rgba(255,255,255,0) 32%,
+   rgba(255,255,255,.16) 66%,rgba(255,255,255,0) 84%)}
+.cookies{inset:0;
+  background-image:
+    radial-gradient(closest-side circle at 26% 34%, #a9743e 0 52%, #74471f 80%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 70% 30%, #b8813f 0 52%, #7d4d21 80%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 44% 70%, #a06c39 0 52%, #6d4320 80%, rgba(0,0,0,0)),
+    linear-gradient(180deg,#5a3a1c,#3c2612);
+  background-size:52% 56%,48% 52%,50% 52%,auto;background-repeat:no-repeat}
+.cookies.oreo{
+  background-image:
+    radial-gradient(closest-side circle at 30% 36%, #2a2226 0 46%, #171215 78%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 68% 32%, #30272b 0 46%, #191316 78%, rgba(0,0,0,0)),
+    radial-gradient(closest-side circle at 48% 72%, #262024 0 46%, #140f12 78%, rgba(0,0,0,0)),
+    linear-gradient(180deg,#221c20,#100c0e);
+  background-size:52% 56%,48% 52%,50% 52%,auto;background-repeat:no-repeat}
+.glaze{inset:0;background:
+    radial-gradient(closest-side ellipse at 50% 50%, #f0d9a8 0 55%, #c79a52 78%, rgba(0,0,0,0)),
+    linear-gradient(180deg,#d8ac63,#a97a3c)}
+.bun{inset:0;border-radius:50%/38%;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 3px, rgba(255,255,255,0) 3px 9px),
+    linear-gradient(180deg,#e8c07a,#b8823c);
+  box-shadow:inset 0 0 8px rgba(90,50,10,.6)}
+
+/* --- gum / mint box --- */
+.gumbox{width:100%;height:100%}
+.gumbox .body{inset:0;border-radius:4px;
+  background:
+    linear-gradient(100deg,rgba(255,255,255,.5) 0 9%,rgba(255,255,255,0) 30%),
+    linear-gradient(165deg,var(--c1),var(--c2) 60%,var(--c3));
+  box-shadow:inset 0 0 10px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.6)}
+.gumbox .burst{left:8%;right:8%;top:14%;height:56%;border-radius:50%;
+  background:radial-gradient(closest-side ellipse,rgba(255,255,255,.55),rgba(255,255,255,0) 72%)}
+.gumbox .frost{inset:0;border-radius:4px;opacity:.5;
+  background-image:
+    radial-gradient(circle at 18% 24%, rgba(255,255,255,.85) 0 4%, rgba(0,0,0,0) 5%),
+    radial-gradient(circle at 76% 18%, rgba(255,255,255,.7) 0 3%, rgba(0,0,0,0) 4%),
+    radial-gradient(circle at 62% 66%, rgba(255,255,255,.8) 0 3.5%, rgba(0,0,0,0) 4.5%),
+    radial-gradient(circle at 30% 78%, rgba(255,255,255,.6) 0 3%, rgba(0,0,0,0) 4%),
+    radial-gradient(circle at 88% 52%, rgba(255,255,255,.55) 0 2.5%, rgba(0,0,0,0) 3.5%)}
+.gumbox .strip{left:13%;right:13%;top:66%;bottom:8%;border-radius:3px;overflow:hidden;
+  background:linear-gradient(180deg,#20364a,#0d1a26);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.25), 0 1px 2px rgba(0,0,0,.6)}
+.gumbox .flav{left:0;right:0;top:53%;text-align:center;
+  font:800 calc(4.6 * var(--u))/1 Arial;letter-spacing:1px;color:rgba(255,255,255,.9);
+  text-transform:uppercase}
+.gumbox .brand{left:0;right:0;top:14%;text-align:center;
+  font:900 calc(10 * var(--u))/1 Impact,"Arial Black",Arial;
+  color:#eaf7ff;letter-spacing:-.3px;text-shadow:0 1px 2px rgba(0,40,80,.8)}
+.gumbox .sub{left:0;right:0;top:34%;text-align:center;font:800 calc(12 * var(--u))/1 "Arial Black",Arial;
+  color:#fff;text-shadow:0 0 8px rgba(140,220,255,.9)}
+.gumbox .gl{inset:0;border-radius:4px;
+  background:linear-gradient(112deg,rgba(255,255,255,.38) 0 12%,rgba(255,255,255,0) 34%)}
+
+/* --- meat stick --- */
+.stick{width:100%;height:100%}
+.stick .body{inset:0;border-radius:5px;
+  background:
+    linear-gradient(100deg,rgba(255,255,255,.35) 0 8%,rgba(255,255,255,0) 26%),
+    linear-gradient(165deg,#8d1f1f,#5d1212 60%,#3a0b0b);
+  box-shadow:inset 0 0 10px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.7)}
+.stick .brand{left:0;right:0;top:16%;text-align:center;
+  font:900 calc(9 * var(--u))/1.05 Impact,"Arial Black",Arial;
+  color:#ffe9a8;text-shadow:0 1px 2px #000;letter-spacing:-.2px}
+.stick .band{left:-6%;right:-6%;top:38%;height:17%;transform:rotate(-4deg);
+  background:linear-gradient(180deg,#f0c96b,#c8942c 60%,#8d6212);
+  box-shadow:0 1px 3px rgba(0,0,0,.6)}
+.stick .sub{left:0;right:0;top:41%;text-align:center;
+  font:800 calc(4.8 * var(--u))/1 Arial;letter-spacing:.6px;color:#3b2408}
+.stick .twist{left:0;right:0;height:calc(7 * var(--u));
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.45) 0 1.5px,rgba(255,255,255,.3) 1.5px 3px);
+  filter:saturate(.4)}
+.stick .twist.t{top:0;border-radius:5px 5px 0 0}
+.stick .twist.b{bottom:0;border-radius:0 0 5px 5px}
+.stick .photo{left:14%;right:14%;top:60%;bottom:9%;border-radius:2px;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+.stick .gl{inset:0;border-radius:5px;
+  background:linear-gradient(112deg,rgba(255,255,255,.3) 0 12%,rgba(255,255,255,0) 34%)}
+
+/* sold-out ghost */
+.soldout{
+  position:relative;width:60%;height:34%;border-radius:3px;align-self:flex-end;margin-bottom:6px;
+  display:grid;place-items:center;font:700 6px/1 Arial;color:#6d6257;letter-spacing:.6px;
+  background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+
+/* ============================================================
+   HUD / WALLET
+   ============================================================ */
+#hud{
+  position:fixed;left:10px;top:10px;z-index:40;width:220px;max-width:46vw;
+  border-radius:12px;padding:10px 11px 11px;
+  background:linear-gradient(180deg,rgba(24,20,17,.93),rgba(12,10,9,.93));
+  box-shadow:0 10px 30px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.12);
+  font-size:11px;backdrop-filter:blur(6px)
+}
+#hud h3{font:800 10px/1 Arial;letter-spacing:1.5px;color:#f0c96b;margin-bottom:7px}
+#hud .line{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;color:#d8d2c6}
+#hud .line b{color:#fff;font-variant-numeric:tabular-nums}
+#hud .den{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+#hud .den button{
+  border:none;cursor:pointer;border-radius:6px;padding:4px 6px;font:700 10px/1 Arial;color:#1c1a16;
+  background:linear-gradient(180deg,#f4ecd4,#cfc4a2);box-shadow:0 2px 4px rgba(0,0,0,.4)}
+#hud .den button:disabled{opacity:.35;cursor:not-allowed}
+#hud .den button.bill{background:linear-gradient(180deg,#cfe6c8,#8fbe86);color:#14290f}
+#hud .den button.card{background:linear-gradient(180deg,#cfe0ff,#8fa8e0);color:#0f1a33;width:100%}
+#hud .hint{margin-top:8px;color:#9a9284;font-size:9.5px;line-height:1.45}
+#hud .kbd{color:#f0c96b}
+#hudtoggle{
+  position:fixed;left:10px;top:10px;z-index:41;display:none;border:none;cursor:pointer;
+  border-radius:10px;padding:9px 12px;font:800 12px/1 Arial;color:#1c1a16;
+  background:linear-gradient(180deg,#f4ecd4,#cfc4a2);box-shadow:0 4px 12px rgba(0,0,0,.5)}
+@media (max-width:860px){
+  #hud{left:8px;top:8px;right:8px;width:auto;max-width:none}
+  #hudtoggle{left:auto;right:10px;bottom:10px;top:auto;padding:11px 14px}
+}
+#hud.hidden{display:none}
+#hud.hidden + #hudtoggle{display:block}
+
+/* small floating chooser popups (bills / coins / card) */
+.popup{
+  position:fixed;z-index:60;border-radius:12px;padding:10px;min-width:150px;
+  background:linear-gradient(180deg,rgba(28,24,20,.97),rgba(14,12,10,.97));
+  box-shadow:0 16px 40px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.14);
+  animation:pop .16s ease-out both}
+@keyframes pop{from{transform:translateY(6px) scale(.96);opacity:0}}
+.popup h4{font:800 9.5px/1 Arial;letter-spacing:1.2px;color:#f0c96b;margin-bottom:8px}
+.popup button{
+  display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;
+  border:none;cursor:pointer;border-radius:8px;padding:7px 9px;margin-bottom:5px;
+  font:700 11px/1 Arial;color:#1c1a16;background:linear-gradient(180deg,#f4ecd4,#cfc4a2)}
+.popup button small{font-weight:700;opacity:.6}
+.popup button:disabled{opacity:.33;cursor:not-allowed}
+.popup button.wide{background:linear-gradient(180deg,#cfe0ff,#93aae2);color:#0d1730}
+.popup .close{background:transparent;color:#9a9284;font-size:10px;justify-content:center;margin:2px 0 0}
+
+/* ============================================================
+   RETRIEVED-ITEM OVERLAY
+   ============================================================ */
+#reveal{
+  position:fixed;inset:0;z-index:80;display:none;place-items:center;cursor:pointer;
+  background:radial-gradient(60% 60% at 50% 45%, rgba(20,14,8,.42), rgba(0,0,0,.72));
+  backdrop-filter:blur(3px)}
+#reveal.on{display:grid;animation:fadein .3s ease-out both}
+@keyframes fadein{from{opacity:0}}
+#revealitem{
+  transform-origin:50% 55%;
+  animation:comeforward 1.15s cubic-bezier(.16,.9,.24,1) both}
+@keyframes comeforward{
+  0%{transform:translateY(60px) scale(.18) rotateY(-14deg);opacity:0;filter:blur(2px)}
+  35%{opacity:.45}
+  100%{transform:translateY(0) scale(1) rotateY(0);opacity:.93;filter:blur(0)}}
+#revealitem .pk{width:100%;height:100%;filter:drop-shadow(0 30px 40px rgba(0,0,0,.6))}
+#revealtext{
+  position:absolute;left:0;right:0;bottom:9vh;text-align:center;color:#fff;
+  animation:fadein .6s .7s both}
+#revealtext .t{font:800 clamp(15px,4.4vw,26px)/1.2 Arial;letter-spacing:.5px;
+  text-shadow:0 3px 14px rgba(0,0,0,.8)}
+#revealtext .s{margin-top:8px;font:600 11px/1 Arial;letter-spacing:2px;color:#f0c96b;opacity:.9}
+
+/* falling-item layer: inside the glass, so the cabinet body clips the item away
+   as it drops out of the display case and into the bin. Sits under #gloss so the
+   window reflections still play over it. */
+#fxglass{position:absolute;inset:0;z-index:7;pointer-events:none}
+@keyframes vendfall{
+  0%{transform:translate(0,0) rotate(0)}
+  14%{transform:translate(1px,6px) rotate(2.5deg)}
+  100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
+
+/* ---------- narrow / mobile ---------- */
+@media (max-width:860px){
+  #hud{font-size:10.5px}
+}
+</style>
+</head>
+<body>
+
+<div id="room"><div id="floor"></div></div>
+
+<div id="viewport">
+<div id="stage">
+  <div id="machine">
+
+    <!-- ============ LEFT: GLASS CABINET ============ -->
+    <div id="cabinet">
+      <div id="glassframe">
+        <div id="glass">
+          <div id="shelves"></div>
+          <div id="fxglass"></div>
+
+          <!-- interior stickers -->
+          <div class="sticker" id="sk-news">
+            <b>Great News!!</b>
+            Campus vending machines now accept Dining Dollars! Slide your ID card
+            and you&rsquo;ll be able to use your credit and debit for snacks and
+            meals. Enjoy!
+          </div>
+          <div class="sticker" id="sk-choose">
+            <h4>Choose Well!!</h4>
+            <div class="row"><span class="sw" style="background:#2f9e4f"></span>Great Choice!</div>
+            <div class="row"><span class="sw" style="background:#f0c419"></span>Better Choice</div>
+            <div class="row"><span class="sw" style="background:#e05c2b"></span>Think&hellip;</div>
+          </div>
+          <div class="sticker" id="sk-cash">
+            <b>GO<br>CASHLESS</b>
+            <div class="cards"><span>VISA</span><span>MC</span><span>AMEX</span><span>PAY</span></div>
+            MAKE YOUR PURCHASES FAST &amp; EASY
+          </div>
+
+          <div id="gloss"></div><div id="glasslip"></div>
+        </div>
+      </div>
+
+      <!-- ============ DISPENSE AREA ============ -->
+      <div id="dispense">
+        <svg id="bamboo" viewBox="0 0 440 104" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <!-- three flat ink tones, as a two-colour screen print would use -->
+            <linearGradient id="lfA" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#7ba83f"/><stop offset="1" stop-color="#7ba83f"/>
+            </linearGradient>
+            <linearGradient id="lfB" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#5f8c2c"/><stop offset="1" stop-color="#5f8c2c"/>
+            </linearGradient>
+            <linearGradient id="lfC" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#94bd57"/><stop offset="1" stop-color="#94bd57"/>
+            </linearGradient>
+          </defs>
+          <g id="bambooart"></g>
+        </svg>
+        <div id="basepanel"></div>
+        <div id="bay">
+          <div id="bayitem"></div>
+        </div>
+        <div id="door" role="button" tabindex="0" aria-label="Push dispensing door to retrieve item">
+          <div class="louvers"></div>
+          <div class="push">PUSH</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ RIGHT: CONTROL COLUMN ============ -->
+    <div id="console">
+      <div id="servicetag"><b>FOR SERVICE</b><br>781-376-0090<br>WOBURN, MA 01801</div>
+
+      <!-- card reader -->
+      <div id="reader" role="button" tabindex="0" aria-label="Card reader: tap or insert card">
+        <div class="strip">
+          <div id="readerled"></div>
+          <div class="pill" style="background:#1a1f71;color:#fff">VISA</div>
+          <div class="pill" style="background:#eb001b;color:#fff">MC</div>
+          <div class="pill" style="background:#2e77bc;color:#fff">AMEX</div>
+          <div class="pill" style="background:#f0b90b">DISC</div>
+          <div class="pill" style="background:#111;color:#fff">PAY</div>
+        </div>
+        <div id="lcd">
+          <!-- scene 1: tap -->
+          <div class="scene">
+            <div class="lcdwrap">
+              <svg class="lcdart" width="130" height="52" viewBox="0 0 130 52">
+                <g fill="none" stroke="#8dffc6" stroke-width="3" stroke-linecap="round">
+                  <path class="wave" d="M26 6 A 21 21 0 0 1 26 46"/>
+                  <path class="wave" d="M35 12 A 14 14 0 0 1 35 40"/>
+                  <path class="wave" d="M44 18 A 8 8 0 0 1 44 34"/>
+                </g>
+                <g class="handsvg">
+                  <path d="M62 50 L62 26 a4 4 0 0 1 8 0 l0 -13 a4 4 0 0 1 8 0 l0 13 a4 4 0 0 1 8 0
+                           l0 5 a4 4 0 0 1 8 0 l0 19 z"
+                        fill="#0c3b26" stroke="#a8ffd6" stroke-width="2.2" stroke-linejoin="round"/>
+                </g>
+              </svg>
+              <div class="cap">TAP CARD OR PHONE HERE</div>
+            </div>
+          </div>
+          <!-- scene 2: insert -->
+          <div class="scene">
+            <div class="lcdwrap">
+              <svg class="lcdart" width="140" height="52" viewBox="0 0 140 52">
+                <!-- the reader's own slot -->
+                <rect x="3" y="8" width="20" height="36" rx="2.5" fill="#0c3b26"
+                      stroke="#a8ffd6" stroke-width="2.2"/>
+                <rect x="8" y="14" width="10" height="4" rx="2" fill="#a8ffd6"/>
+                <g class="cardsvg">
+                  <rect x="28" y="15" width="42" height="26" rx="3" fill="#0c3b26"
+                        stroke="#a8ffd6" stroke-width="2.2"/>
+                  <rect x="33" y="21" width="9" height="7" rx="1.4" fill="#ffd75e"/>
+                  <path d="M76 50 L76 30 a3.4 3.4 0 0 1 6.8 0 l0 -11 a3.4 3.4 0 0 1 6.8 0 l0 11
+                           a3.4 3.4 0 0 1 6.8 0 l0 4 a3.4 3.4 0 0 1 6.8 0 l0 16 z"
+                        fill="#0c3b26" stroke="#a8ffd6" stroke-width="2" stroke-linejoin="round"/>
+                </g>
+              </svg>
+              <div class="cap">OR INSERT CHIP CARD</div>
+            </div>
+          </div>
+          <!-- scene 3: accepted cards -->
+          <div class="scene">
+            <div class="lcdwrap">
+              <div class="brandgrid">
+                <span style="background:#1a1f71;color:#fff">VISA</span>
+                <span style="background:#eb001b;color:#fff">Mastercard</span>
+                <span style="background:#2e77bc;color:#fff">AMEX</span>
+                <span style="background:#f0b90b;color:#222">DISCOVER</span>
+                <span style="background:#efefef;color:#111">&#63743;Pay</span>
+                <span style="background:#3ddc84;color:#0b2b17">G Pay</span>
+              </div>
+              <div class="cap">CARDS ACCEPTED</div>
+            </div>
+          </div>
+          <div class="status" id="lcdstatus">READY</div>
+        </div>
+      </div>
+
+      <!-- VFD -->
+      <div id="vfdshell"><div id="vfd">READY</div></div>
+
+      <!-- bill acceptor -->
+      <div id="billunit" role="button" tabindex="0" aria-label="Insert bill">
+        <div class="top"><span>ACCEPTS</span><span class="bl">$1 $5 $10</span><span>USE NEW BILLS</span></div>
+        <div id="billsticker">
+          <div class="demo">
+            <svg width="30" height="18" viewBox="0 0 30 18">
+              <rect x=".8" y=".8" width="28.4" height="16.4" rx="1.6" fill="#cfe6c8"
+                    stroke="#2c5c2c" stroke-width="1.2"/>
+              <circle cx="15" cy="9" r="4.2" fill="#e8f4e2" stroke="#2c5c2c" stroke-width="1"/>
+              <text x="15" y="12" font-size="6" font-weight="700" fill="#2c5c2c"
+                    text-anchor="middle" font-family="Arial">1</text>
+            </svg>
+          </div>
+          <div class="txt">INSERT<em>BILL</em></div>
+          <div id="billled"></div>
+        </div>
+        <div id="billslot"></div>
+      </div>
+
+      <!-- light 1 + coin slot -->
+      <div class="lightrow">
+        <button class="bigbtn" id="light1" aria-label="Indicator 1">1</button>
+        <div id="coinslot" role="button" tabindex="0" aria-label="Insert coin">
+          <div class="mouth"></div><div class="lbl">INSERT COIN</div>
+        </div>
+      </div>
+
+      <!-- light 2 + keypad -->
+      <div class="bigwrap"><button class="bigbtn" id="light2" aria-label="Indicator 2">2</button></div>
+      <div id="keypadblock">
+        <div id="keypad">
+          <button class="key" data-k="1">1</button><button class="key" data-k="2">2</button>
+          <button class="key" data-k="3">3</button><button class="key" data-k="4">4</button>
+          <button class="key" data-k="5">5</button><button class="key" data-k="6">6</button>
+          <button class="key" data-k="7">7</button><button class="key" data-k="8">8</button>
+          <button class="key" data-k="9">9</button>
+          <button class="key clr" data-k="C" aria-label="Clear">&#10006;</button>
+          <button class="key" data-k="0">0</button>
+          <button class="key" data-k="R" aria-label="Coin return" style="font-size:13px">&#9995;</button>
+        </div>
+        <button id="okkey"><span class="chk">&#10004;</span>OK</button>
+      </div>
+
+      <!-- light 3 -->
+      <div class="bigwrap"><button class="bigbtn" id="light3" aria-label="Indicator 3">3</button></div>
+
+      <!-- coin return -->
+      <div id="returnwrap">
+        <div style="position:relative">
+          <div id="coinbtn" title="Coin return"></div>
+          <div id="cointray" role="button" tabindex="0" aria-label="Coin return tray"></div>
+        </div>
+        <div id="returnlbl">COIN RETURN</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <h3>YOUR MONEY</h3>
+  <div class="line"><span>Cash on hand</span><b id="hudcash">$10.00</b></div>
+  <div class="line"><span>Card balance</span><b id="hudcard">$10.00</b></div>
+  <div class="line"><span>Credit in machine</span><b id="hudcredit">$0.00</b></div>
+  <div class="line"><span>Snacks bought</span><b id="hudbought">0</b></div>
+  <div class="den" id="hudden"></div>
+  <div class="hint">
+    Tap the <span class="kbd">card reader</span>, <span class="kbd">bill slot</span> or
+    <span class="kbd">coin slot</span> to pay. Punch the item code on the keypad and press
+    <span class="kbd">OK</span>. Then <span class="kbd">push the tray door</span> to grab your snack.
+    <br>Keyboard: digits, <span class="kbd">Enter</span>=OK, <span class="kbd">Esc</span>=coin return.
+  </div>
+  <div class="den"><button class="card" id="hudhide">hide panel</button></div>
+</div>
+<button id="hudtoggle">$ MONEY</button>
+
+<!-- retrieved item overlay -->
+<div id="reveal" role="dialog" aria-modal="true">
+  <div id="revealitem"></div>
+  <div id="revealtext"><div class="t"></div><div class="s">CLICK OR TAP ANYWHERE TO PUT IT AWAY</div></div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   1. INVENTORY
+   ============================================================ */
+const money = c => "$" + (c/100).toFixed(2);
+
+/* deterministic jitter so every render of a snack looks identical */
+function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){
+  h=(h^str.charCodeAt(i))*16777619>>>0;} return h;}
+function rng(seed){let s=(seed>>>0)||1;return()=>{
+  s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
+
+/* a pile of individual pieces — reads as a product photograph */
+function pile(kinds,n,o={}){
+  const list=Array.isArray(kinds)?kinds:[kinds];
+  const r=rng(hash(list.join()+n+(o.seed||"")));
+  const cols=o.cols||3, rows=Math.ceil(n/cols);
+  let out="";
+  for(let i=0;i<n;i++){
+    const c=i%cols, ro=(i/cols)|0;
+    const w=(o.w||36)*(.82+r()*.4);
+    const h=w*(o.ar||.92);
+    const x=(c+.5)*(100/cols)-w/2+(r()*16-8);
+    const y=(ro+.5)*(100/rows)-h/2+(r()*14-7);
+    const rot=(o.rot===0)?0:(r()*(o.rot||80)-(o.rot||80)/2);
+    out+=`<b class="ch ${list[i%list.length]}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%;`+
+         `width:${w.toFixed(1)}%;height:${h.toFixed(1)}%;transform:rotate(${rot.toFixed(1)}deg)"></b>`;
+  }
+  return out;
+}
+
+// art builders -------------------------------------------------
+function bag(o){
+  return `<div class="pk bag" style="--c1:${o.c1};--c2:${o.c2};--c3:${o.c3};--tc:${o.tc||'#fff'};
+    --fc:${o.fc||'#fff3cf'};--bs:${o.bs||15}">
+    <div class="body"></div><div class="creases"></div>
+    <div class="crimp t"></div><div class="crimp b"></div>
+    <div class="swoosh"></div>
+    <div class="brand ${o.script?'script':''}">${o.brand}</div>
+    <div class="flav">${o.flav}</div>
+    <div class="food pile ${o.plight?'light':''}">${pile(o.food,o.n||7,o.po)}</div>
+    <div class="nw">${o.oz||'1.5'} OZ</div>
+    <div class="gl"></div></div>`;
+}
+function bar(o){
+  return `<div class="pk bar" style="--c1:${o.c1};--c2:${o.c2};--c3:${o.c3};--tc:${o.tc||'#fff'};
+    --sc:${o.sc||'rgba(255,255,255,.85)'}">
+    <div class="body"></div><div class="creases"></div>
+    <div class="seam t"></div><div class="seam b"></div>
+    <div class="band"></div>
+    <div class="txt">
+      <div class="name ${o.sm?'sm':''} ${o.script?'script':''}">${o.brand}</div>
+      <div class="sub">${o.sub||''}</div>
+    </div>
+    <div class="photo pile">${pile(o.food,o.n||4,o.po)}</div>
+    <div class="gl"></div></div>`;
+}
+function pouch(o){
+  return `<div class="pk pouch" style="--c1:${o.c1};--c2:${o.c2};--tc:${o.tc||'#fff'}">
+    <div class="body"></div>
+    <div class="fill pile light">${pile(o.food,o.n||9,{cols:3,w:34,...(o.po||{})})}</div>
+    <div class="label"><span>${o.brand}</span></div>
+    <div class="gl"></div></div>`;
+}
+function jerky(o){
+  return `<div class="pk jerky">
+    <div class="body"></div><div class="zip"></div>
+    <div class="banner"></div>
+    <div class="brand">${o.brand}</div>
+    <div class="badge">${o.badge||'100% BEEF'}</div>
+    <div class="flav">${o.flav}</div>
+    <div class="win pile">${pile("meat",o.n||5,{cols:2,w:44,ar:.55,rot:14,...(o.po||{})})}</div>
+    <div class="gl"></div></div>`;
+}
+function pack(o){
+  return `<div class="pk pack" style="--c1:${o.c1};--c2:${o.c2};--c3:${o.c3};--tc:${o.tc||'#fff'};
+    --fc:${o.fc||'rgba(255,255,255,.9)'}">
+    <div class="body"></div>
+    <div class="brand ${o.script?'script':''}">${o.brand}</div>
+    <div class="flav">${o.flav}</div>
+    <div class="food pile ${o.plight?'light':''}">${pile(o.food||'cookie',o.n||6,o.po)}</div>
+    <div class="gl"></div></div>`;
+}
+function gumbox(o){
+  return `<div class="pk gumbox" style="--c1:${o.c1};--c2:${o.c2};--c3:${o.c3}">
+    <div class="body"></div><div class="burst"></div><div class="frost"></div>
+    <div class="brand">${o.brand}</div>
+    <div class="sub">${o.sub}</div>
+    <div class="flav">${o.flav||''}</div>
+    <div class="strip pile">${pile("pellet",4,{cols:4,w:20,ar:1.5,rot:0})}</div>
+    <div class="gl"></div></div>`;
+}
+function stick(o){
+  return `<div class="pk stick"><div class="body"></div>
+    <div class="twist t"></div><div class="twist b"></div>
+    <div class="brand">${o.brand}</div>
+    <div class="band"></div><div class="sub">${o.sub||'ORIGINAL BEEF'}</div>
+    <div class="photo pile">${pile("meat",3,{cols:3,w:30,ar:2.1,rot:6})}</div>
+    <div class="gl"></div></div>`;
+}
+
+// shelf data ---------------------------------------------------
+// w/h are the on-shelf footprint in design px.
+const SHELVES = [
+  [ // 1xx — chips
+    {code:"101",price:125,name:"Utz Original Potato Chips",w:88,h:92,
+      art:()=>bag({brand:"Utz",script:1,bs:22,flav:"Original Potato Chips",c1:"#f4f6f7",c2:"#dfe6ea",c3:"#b9c6cd",tc:"#c8102e",fc:"#c8102e",food:"potato",n:10,po:{w:30},oz:"1.5"})},
+    {code:"103",price:125,name:"Sun Chips Harvest Cheddar",w:88,h:92,
+      art:()=>bag({brand:"SunChips",bs:15,flav:"Harvest Cheddar",c1:"#ffd15c",c2:"#f08a24",c3:"#c85c12",tc:"#6b3a06",fc:"#7d2b0b",food:"corn",n:9,po:{w:28,ar:1.25},oz:"1.5"})},
+    {code:"105",price:125,name:"Ruffles Cheddar & Sour Cream",w:88,h:92,
+      art:()=>bag({brand:"RUFFLES",bs:14,flav:"Cheddar &amp; Sour Cream",c1:"#2f5fd0",c2:"#1a3f9c",c3:"#0f2668",tc:"#ffffff",fc:"#ffe066",food:"potato",n:10,po:{w:30},oz:"1.5"})},
+    {code:"107",price:150,name:"Doritos Nacho Cheese",w:88,h:92,
+      art:()=>bag({brand:"DORITOS",bs:12,flav:"Nacho Cheese",c1:"#e2321f",c2:"#a3160c",c3:"#5e0a05",tc:"#ffe89a",fc:"#ffd45c",food:"tortilla",n:6,po:{w:40,rot:50},oz:"1.75"})}
+  ],
+  [ // 2xx — chips & popcorn
+    {code:"201",price:125,name:"Party Mix Snack Mix",w:88,h:90,
+      art:()=>bag({brand:"PartyMix",bs:14,flav:"Original Snack Mix",c1:"#f2e2c0",c2:"#d9b177",c3:"#a97b40",tc:"#7a1f10",fc:"#7a1f10",food:["cracker","corn","nut","cracker"],n:9,po:{w:30},oz:"2.0"})},
+    {code:"203",price:125,name:"Cape Cod Kettle Chips",w:88,h:90,
+      art:()=>bag({brand:"CAPE COD",bs:12,flav:"Original Kettle Cooked",c1:"#f7f7f4",c2:"#e6e9e6",c3:"#c3cbc7",tc:"#0d3b6b",fc:"#0d3b6b",food:"kettle",n:10,po:{w:31},oz:"1.5"})},
+    {code:"205",price:125,name:"Go Lite! Popped Chips",w:88,h:90,
+      art:()=>bag({brand:"GO LITE!",bs:13,flav:"100 Calorie Popped",c1:"#e5d3f2",c2:"#b98fd8",c3:"#7d4faa",tc:"#3d1a5c",fc:"#4d2470",food:"pop",n:10,po:{w:30},plight:1,oz:"0.8"})},
+    {code:"207",price:150,name:"Sweet Potato Tortilla Chips",w:88,h:90,
+      art:()=>bag({brand:"SWEET",bs:13,flav:"Sweet Potato Tortilla",c1:"#3a2b22",c2:"#241a14",c3:"#120c09",tc:"#ffcf7a",fc:"#ffb45c",food:"tortilla",n:6,po:{w:40,rot:50},oz:"1.5"})}
+  ],
+  [ // 3xx — chips
+    {code:"301",price:125,name:"Cheetos Oven Baked",w:88,h:90,
+      art:()=>bag({brand:"Cheetos",script:1,bs:17,flav:"Oven Baked Crunchy",c1:"#ffd25a",c2:"#f28a1c",c3:"#b8510a",tc:"#ffffff",fc:"#8c2b06",food:"cheese",n:8,po:{w:30,ar:1.5},oz:"0.87"})},
+    {code:"303",price:150,name:"Stacy's Cinnamon Pita Chips",w:88,h:90,
+      art:()=>bag({brand:"Stacy's",script:1,bs:19,flav:"Cinnamon Sugar",c1:"#2b2b2b",c2:"#171717",c3:"#080808",tc:"#f0c96b",fc:"#f0c96b",food:"pita",n:6,po:{w:40,rot:60},oz:"1.5"})},
+    {code:"305",price:125,name:"Fritos Original Corn Chips",w:88,h:90,
+      art:()=>bag({brand:"FRITOS",bs:14,flav:"The Original",c1:"#ffe14f",c2:"#f2b415",c3:"#c07708",tc:"#c8102e",fc:"#b0140f",food:"corn",n:9,po:{w:30,ar:1.3},oz:"1.0"})},
+    {code:"307",price:150,name:"Herr's Popped Corn",w:88,h:90,
+      art:()=>bag({brand:"Popped",script:1,bs:18,flav:"Herr's Butter Popped",c1:"#fdfdfb",c2:"#ecebe4",c3:"#c9c8bd",tc:"#c8102e",fc:"#1a4d8f",food:"pop",n:10,po:{w:30},plight:1,oz:"0.75"})}
+  ],
+  [ // 4xx — nuts, trail mix, jerky, crackers
+    {code:"401",price:200,name:"Old Trapper Beef Jerky",w:88,h:92,
+      art:()=>jerky({brand:"OLD TRAPPER",flav:"Old Fashioned",badge:"100% BEEF",n:5})},
+    {code:"403",price:175,name:"Kar's Original Trail Mix",w:88,h:92,
+      art:()=>pouch({brand:"Original<br>TRAIL MIX",food:["nut","raisin","mnut","peanut","cran","nut"],n:11,
+        po:{w:28},c1:"#f2c53d",c2:"#d18a12",tc:"#4a2708"})},
+    {code:"405",price:150,name:"Planters Salted Peanuts",w:88,h:92,
+      art:()=>pouch({brand:"PLANTERS<br>PEANUTS",food:"peanut",n:12,po:{w:26,cols:4},
+        c1:"#1f4fa8",c2:"#0f2e6b",tc:"#ffd75e"})},
+    {code:"407",price:150,name:"Cheez-It Crackers",w:88,h:92,
+      art:()=>pack({brand:"CHEEZ&#8209;IT",flav:"Original Baked Snack",c1:"#e8331f",c2:"#b91c0d",c3:"#7d1006",
+        tc:"#ffffff",food:"cracker",n:9,po:{w:30,rot:40}})}
+  ],
+  [ // 5xx — candy bars
+    {code:"501",price:150,name:"M&M's Milk Chocolate",w:56,h:92,
+      art:()=>bar({brand:"m&amp;m's",sm:1,sub:"Milk Chocolate",c1:"#8b3f1f",c2:"#5c2411",c3:"#2f1108",
+        tc:"#ffd75e",sc:"#ffe9a8",food:["lentil","lentil b","lentil g","lentil y","lentil n","lentil o"],
+        n:9,po:{cols:3,w:28,ar:1,rot:0}})},
+    {code:"502",price:150,name:"Snickers Bar",w:56,h:92,
+      art:()=>bar({brand:"SNICKERS",sm:1,sub:"Peanut Caramel",c1:"#4a2a12",c2:"#2e1808",c3:"#170c04",
+        tc:"#ffffff",food:["choc","peanut","choc"],n:6,po:{cols:2,w:40,ar:.6,rot:8}})},
+    {code:"504",price:150,name:"Twix Caramel Cookie Bars",w:56,h:92,
+      art:()=>bar({brand:"TWIX",sub:"Caramel Cookie",c1:"#d8b25e",c2:"#a8792a",c3:"#6b4a12",
+        tc:"#7a1408",sc:"#4a2a06",food:"wafer",n:2,po:{cols:2,w:34,ar:2.4,rot:0}})},
+    {code:"505",price:150,name:"Almond Joy",w:56,h:92,
+      art:()=>bar({brand:"ALMOND JOY",sm:1,sub:"Coconut &amp; Almond",c1:"#2f6ba8",c2:"#17406e",
+        c3:"#0a2440",tc:"#ffffff",food:["coco","almond","coco"],n:6,po:{cols:2,w:38,ar:.7,rot:10}})},
+    {code:"506",price:150,name:"Reese's Peanut Butter Cups",w:56,h:92,
+      art:()=>bar({brand:"REESE'S",sm:1,sub:"Peanut Butter Cups",c1:"#f0a71c",c2:"#d07a08",
+        c3:"#8f4c04",tc:"#5c2408",sc:"#5c2408",food:"cup",n:2,po:{cols:2,w:44,ar:1,rot:0}})},
+    {code:"508",price:175,name:"Kit Kat Wafer Bar",w:56,h:92,
+      art:()=>bar({brand:"KIT KAT",sm:1,sub:"Crisp Wafers",c1:"#e2231a",c2:"#b0100c",c3:"#6b0705",
+        tc:"#ffffff",food:"wafer",n:3,po:{cols:3,w:24,ar:3.2,rot:0}})}
+  ],
+  [ // 6xx — cookies & pastry
+    {code:"601",price:150,name:"Famous Amos Cookies",w:88,h:90,
+      art:()=>pack({brand:"Famous Amos",script:1,flav:"Chocolate Chip Cookies",c1:"#f2e6c8",c2:"#d9bc82",
+        c3:"#a8853f",tc:"#5c2c08",fc:"#5c2c08",food:"cookie",n:6,po:{w:38,rot:0}})},
+    {code:"603",price:150,name:"Oreo Cookies",w:88,h:90,
+      art:()=>pack({brand:"OREO",flav:"Chocolate Sandwich",c1:"#1d4fb0",c2:"#12357c",c3:"#081b44",
+        tc:"#ffffff",food:"oreo",n:5,po:{w:42,rot:0,cols:2}})},
+    {code:"605",price:150,name:"Nutter Butter Cookies",w:88,h:90,
+      art:()=>pack({brand:"Nutter Butter",script:1,flav:"Peanut Butter Sandwich",c1:"#f2c93d",c2:"#d99a12",
+        c3:"#a06508",tc:"#5c2c08",fc:"#7a2b08",food:"peanut",n:6,po:{w:40,ar:.7,rot:30}})},
+    {code:"607",price:175,name:"Jelly Swirl Honey Bun",w:88,h:90,
+      art:()=>pack({brand:"Jelly Swirl",script:1,flav:"Honey Bun",c1:"#f7d7e6",c2:"#e39ac0",c3:"#b45c8f",
+        tc:"#7a1050",fc:"#7a1050",food:"swirl",n:3,po:{w:52,rot:0,cols:2},plight:1})}
+  ],
+  [ // 7xx — gum, mints, meat stick
+    {code:"702",price:175,name:"Dentyne Ice Peppermint",w:78,h:74,
+      art:()=>gumbox({brand:"Dentyne",sub:"ICE",flav:"Peppermint",
+        c1:"#3fa3e8",c2:"#1560a8",c3:"#0a3568"})},
+    {code:"703",price:175,name:"Dentyne Ice Spearmint",w:78,h:74,
+      art:()=>gumbox({brand:"Dentyne",sub:"ICE",flav:"Spearmint",
+        c1:"#4fd08a",c2:"#178f4f",c3:"#0a5c2f"})},
+    {code:"705",price:175,name:"Mike & Ike Original Fruits",w:78,h:74,
+      art:()=>pack({brand:"MIKE&amp;IKE",flav:"Original Fruits",c1:"#7fc93d",c2:"#4f9a18",c3:"#2c6b08",
+        tc:"#ffffff",food:["jelly","jelly b","jelly c"],n:9,po:{w:26,ar:1.7,rot:70}})},
+    {code:"707",price:200,name:"Jack Link's Meat Stick",w:78,h:74,
+      art:()=>stick({brand:"JACK LINK'S",sub:"ORIGINAL BEEF"})}
+  ]
+];
+
+// flatten + stock
+const ITEMS = {};
+SHELVES.forEach((row,ri)=>row.forEach(it=>{ITEMS[it.code]={...it,shelf:ri,stock:3};}));
+
+/* ============================================================
+   2. STATE
+   ============================================================ */
+const S = {
+  cash:{100:3,500:1,25:4,10:5,5:10},   // $3 + $5 + $1.00 + $0.50 + $0.50 = $10.00
+  card:1000,
+  credit:0,
+  entry:"",
+  cardSession:false,      // card authorised, waiting for a selection
+  cardInserted:false,
+  busy:false,
+  change:[],              // coin denominations sitting in the return
+  trayItem:null,          // code awaiting retrieval
+  bought:0
+};
+const cashTotal = () => Object.entries(S.cash).reduce((s,[d,n])=>s+d*n,0);
+
+/* ============================================================
+   3. DOM
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const shelvesEl=$("#shelves"), vfd=$("#vfd"), fx=$("#fxglass"), stage=$("#stage");
+const glassEl=$("#glass");
+const doorEl=$("#door"), bayItem=$("#bayitem"), doorLabel=$("#door .push");
+const coinTray=$("#cointray"), lcd=$("#lcd"), lcdStatus=$("#lcdstatus");
+let scale=1;
+
+/* ============================================================
+   BAMBOO SPRIG — thin stems carrying fans of lance-shaped leaves
+   ============================================================ */
+function bLeaf(len,wid,shade){
+  // base at 0,0 → long tapered point at len,0; widest around 38%
+  const d=`M0 0 C ${len*.20} ${-wid*.72} ${len*.46} ${-wid} ${len*.78} ${-wid*.52}`+
+          ` C ${len*.9} ${-wid*.28} ${len*.97} ${-wid*.1} ${len} 0`+
+          ` C ${len*.97} ${wid*.1} ${len*.9} ${wid*.28} ${len*.78} ${wid*.52}`+
+          ` C ${len*.46} ${wid} ${len*.20} ${wid*.72} 0 0 Z`;
+  let veins="";
+  for(let k=-3;k<=3;k++){
+    if(!k) continue;
+    const o=wid*(k/4);
+    veins+=`<path d="M${len*.09} ${o*.30} Q ${len*.52} ${o*.98} ${len*.93} ${o*.14}"
+             stroke="#3f6a1c" stroke-width=".5" fill="none" opacity=".30"/>`;
+  }
+  return `<path d="${d}" fill="url(#lf${shade})"/>`+
+         `<path d="M${len*.02} 0 Q ${len*.55} ${wid*.06} ${len} 0" stroke="#3f6a1c"
+            stroke-width="1" fill="none" opacity=".45"/>`+veins;
+}
+function bFan(x,y,leaves){
+  return `<g transform="translate(${x},${y})">` +
+    leaves.map(([len,wid,rot,shade])=>
+      `<g transform="rotate(${rot})">${bLeaf(len,wid,shade)}</g>`).join("") + `</g>`;
+}
+(function drawBamboo(){
+  const g=document.getElementById("bambooart"); if(!g) return;
+  const stem=(d)=>`<path d="${d}" stroke="#4c7526" stroke-width="1.3" fill="none"
+     stroke-linecap="round"/>`;
+  // bamboo blades run roughly 13:1, so derive half-width from length. Each node
+  // opens a wide fan; the spread is biased away from whichever edge is nearer, so
+  // the print fills the panel band without clipping.
+  const fan=(x,y,spec)=>bFan(x,y,spec.map(([len,rot,shade])=>[len,len/13,rot,shade]));
+  g.innerHTML =
+    stem("M2 62 C 110 58, 250 50, 438 38") +
+    stem("M80 57 C 104 50, 126 44, 148 38") +
+    stem("M224 50 C 250 57, 274 62, 300 66") +
+    stem("M296 46 C 322 40, 346 36, 370 32") +
+    fan(10,60, [[76,-52,"B"],[70,-30,"A"],[62,-8,"C"],[54,14,"A"]]) +
+    fan(80,57, [[76,-48,"A"],[72,-26,"C"],[64,-4,"B"],[56,18,"C"]]) +
+    fan(148,38,[[70,-30,"C"],[62,-8,"A"],[54,16,"B"]]) +
+    fan(152,54, [[76,-44,"C"],[70,-20,"B"],[62,4,"A"],[54,28,"B"]]) +
+    fan(224,50, [[74,-40,"A"],[68,-16,"C"],[60,8,"B"],[52,32,"A"]]) +
+    fan(300,66,[[68,-8,"B"],[60,16,"A"],[52,36,"C"]]) +
+    fan(296,46, [[76,-34,"B"],[70,-10,"A"],[62,14,"C"],[54,38,"B"]]) +
+    fan(370,32,[[66,-14,"A"],[58,10,"B"],[50,32,"C"]]) +
+    fan(368,42, [[74,-26,"C"],[68,-2,"B"],[60,22,"A"],[52,46,"C"]]) +
+    fan(430,38, [[68,-22,"A"],[60,2,"C"],[52,26,"B"]]);
+  // fit the viewBox to the ink itself, so the print fills its panel exactly and
+  // stays centred however the sprig is laid out
+  const fitInk=()=>{
+    try{
+      const b=g.getBBox(), m=2;
+      if(b.width<1||b.height<1) return false;
+      g.ownerSVGElement.setAttribute("viewBox",
+        `${(b.x-m).toFixed(1)} ${(b.y-m).toFixed(1)} `+
+        `${(b.width+2*m).toFixed(1)} ${(b.height+2*m).toFixed(1)}`);
+      return true;
+    }catch(e){ return false; }
+  };
+  if(!fitInk()) setTimeout(fitInk,60);
+})();
+
+/* Vend coils. A wide slot carries a **pair** of helices, as real snack rows do;
+   a narrow candy slot gets one larger helix centred on the pack. Either way the
+   product nests inside, so only the nearest turn is drawn in front of it. */
+function buildCoil(it){
+  const wide = it.w>70;
+  const twin = wide;                            // wide rows: two coils per item
+  const n  = 4;                                 // turns per helix
+  const d  = twin ? 34 : 40;                    // diameter of the front turn
+  // the axis runs almost perpendicular to the glass, so the turns recede nearly
+  // concentrically — depth comes from scale and dimming, not from sliding sideways
+  const px = 2, py = -2.5;
+  // place each helix by its FRONT turn (the only one seen when the slot is full),
+  // not by the helix centre: the front turn sits -c*px from that centre.
+  const c = (n-1)/2;
+  const at = twin ? [-Math.round(it.w*.23), Math.round(it.w*.23)] : [0];
+  const shifts = at.map(x=>x+c*px);
+  const layer=(indices,cls)=>{
+    const coil=document.createElement("div"); coil.className="coil "+cls;
+    for(const sh of shifts){
+      const wrap=document.createElement("div"); wrap.className="coilwrap";
+      wrap.style.setProperty("--n",n-1);
+      wrap.style.setProperty("--c",(n-1)/2);
+      wrap.style.setProperty("--shift",sh+"px");
+      for(const i of indices){
+        const t=document.createElement("span");
+        t.className="turn";
+        t.style.cssText=`--i:${i};--d:${d}px;--px:${px}px;--py:${py}px`;
+        t.innerHTML='<i class="ring"></i>';
+        wrap.appendChild(t);
+      }
+      coil.appendChild(wrap);
+    }
+    return coil;
+  };
+  const backIdx=[]; for(let i=n-1;i>=1;i--) backIdx.push(i);   // far turns first
+  return {back:layer(backIdx,"back"), front:layer([0],"front")};
+}
+
+/* ---- build the shelves ---- */
+SHELVES.forEach((row,ri)=>{
+  const sh=document.createElement("div"); sh.className="shelf";
+  sh.innerHTML=`<div class="lit"></div>`;
+  const slots=document.createElement("div"); slots.className="slots";
+  const rail=document.createElement("div"); rail.className="rail";
+  row.forEach(it=>{
+    const slot=document.createElement("div"); slot.className="slot"; slot.dataset.code=it.code;
+    const holder=document.createElement("div");
+    holder.className="itemholder";
+    holder.style.cssText=
+      `position:relative;width:${it.w}px;height:min(${it.h}px,100%);max-width:94%;flex:0 0 auto`;
+    holder.innerHTML=it.art();
+    holder.firstChild.style.width="100%"; holder.firstChild.style.height="100%";
+    const coil=buildCoil(it);
+    slot.appendChild(coil.back);
+    slot.appendChild(holder);
+    slot.appendChild(coil.front);
+    slots.appendChild(slot);
+
+    const tag=document.createElement("div"); tag.className="tag"; tag.dataset.tag=it.code;
+    tag.innerHTML=`<span class="sel"><span class="code">${it.code}</span>
+      <span class="price">${(it.price/100).toFixed(2)}</span></span>`;
+    rail.appendChild(tag);
+  });
+  sh.appendChild(slots); sh.appendChild(rail); shelvesEl.appendChild(sh);
+});
+const slotEl = code => shelvesEl.querySelector(`.slot[data-code="${code}"]`);
+const tagEl  = code => shelvesEl.querySelector(`.tag[data-tag="${code}"]`);
+
+/* ============================================================
+   4. SOUND (WebAudio, no assets)
+   ============================================================ */
+let AC=null;
+function ac(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+  if(AC&&AC.state==="suspended") AC.resume(); return AC; }
+function tone(f,dur,type="square",vol=.05,slide=0){
+  const c=ac(); if(!c) return;
+  const o=c.createOscillator(), g=c.createGain();
+  o.type=type; o.frequency.value=f;
+  if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(40,f+slide), c.currentTime+dur);
+  g.gain.value=vol;
+  g.gain.exponentialRampToValueAtTime(.0001, c.currentTime+dur);
+  o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+dur);
+}
+function noise(dur,vol=.06,hp=600){
+  const c=ac(); if(!c) return;
+  const n=Math.floor(c.sampleRate*dur), b=c.createBuffer(1,n,c.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+  const src=c.createBufferSource(); src.buffer=b;
+  const f=c.createBiquadFilter(); f.type="highpass"; f.frequency.value=hp;
+  const g=c.createGain(); g.gain.value=vol;
+  src.connect(f).connect(g).connect(c.destination); src.start();
+}
+const sfx={
+  key:()=>tone(1400,.045,"square",.04),
+  bad:()=>{tone(220,.16,"sawtooth",.05);setTimeout(()=>tone(160,.2,"sawtooth",.05),140);},
+  bill:()=>{noise(.35,.05,900);tone(90,.3,"sine",.05,60);},
+  coin:()=>{tone(2300,.06,"triangle",.05);setTimeout(()=>tone(1700,.1,"triangle",.04),60);},
+  ok:()=>{tone(1200,.07,"square",.045);setTimeout(()=>tone(1800,.1,"square",.04),80);},
+  motor:()=>{const c=ac();if(!c)return;
+    const o=c.createOscillator(),g=c.createGain();o.type="sawtooth";o.frequency.value=58;
+    g.gain.value=.035;o.connect(g).connect(c.destination);o.start();
+    g.gain.setValueAtTime(.035,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+1.25);o.stop(c.currentTime+1.3);},
+  thud:()=>{tone(70,.22,"sine",.09,-30);noise(.12,.05,300);},
+  door:()=>noise(.18,.05,400),
+  card:()=>{tone(1000,.08,"sine",.05);setTimeout(()=>tone(1600,.12,"sine",.045),110);}
+};
+
+/* ============================================================
+   5. VFD
+   ============================================================ */
+let vfdHold=null, idleFlip=0;
+function setVFD(txt,holdMs,alert){
+  vfd.textContent=txt;
+  if(alert){ vfd.classList.remove("alert"); void vfd.offsetWidth; vfd.classList.add("alert"); }
+  clearTimeout(vfdHold);
+  if(holdMs) vfdHold=setTimeout(()=>{vfdHold=null;refreshVFD();},holdMs);
+  else vfdHold=null;
+}
+function refreshVFD(){
+  if(vfdHold) return;
+  if(S.trayItem){ vfd.textContent="PUSH TRAY\nTAKE ITEM"; return; }
+  if(S.entry){
+    vfd.textContent = "SELECT " + S.entry.padEnd(3,"_") +
+      (S.cardSession?"\nCARD OK":"\nCREDIT "+money(S.credit));
+    return;
+  }
+  if(S.cardSession){ vfd.textContent="CARD ACCEPTED\nMAKE SELECTION"; return; }
+  if(S.credit>0){ vfd.textContent="CREDIT "+money(S.credit)+"\nMAKE SELECTION"; return; }
+  vfd.textContent = (idleFlip%2===0) ? "READY" : "MAKE YOUR\nSELECTION";
+}
+setInterval(()=>{ if(!vfdHold && !S.entry && !S.credit && !S.cardSession && !S.trayItem){
+  idleFlip++; refreshVFD(); } }, 2200);
+refreshVFD();
+
+/* ============================================================
+   6. LIGHT CASCADE  (1 → 2 → keypad → OK → 3, hold, repeat)
+   ============================================================ */
+const light1=$("#light1"), light2=$("#light2"), light3=$("#light3");
+const keys=[...document.querySelectorAll(".key")], okKey=$("#okkey");
+const cascade=[[light1],[light2],keys,[okKey],[light3]];
+let ci=0, holding=false;
+function stepCascade(){
+  if(holding) return;
+  if(ci<cascade.length){
+    cascade[ci].forEach(e=>e.classList.add("lit")); ci++;
+    if(ci===cascade.length){ holding=true;
+      setTimeout(()=>{ cascade.flat().forEach(e=>e.classList.remove("lit")); ci=0; holding=false; },1300); }
+  }
+}
+setInterval(stepCascade,430);
+
+/* ============================================================
+   7. HUD
+   ============================================================ */
+const hud={cash:$("#hudcash"),card:$("#hudcard"),credit:$("#hudcredit"),bought:$("#hudbought"),
+           den:$("#hudden")};
+const DEN=[[500,"$5"],[100,"$1"],[25,"25¢"],[10,"10¢"],[5,"5¢"]];
+function renderHUD(){
+  hud.cash.textContent=money(cashTotal());
+  hud.card.textContent=money(S.card);
+  hud.credit.textContent=money(S.credit);
+  hud.bought.textContent=S.bought;
+  hud.den.innerHTML="";
+  DEN.forEach(([d,l])=>{
+    const n=S.cash[d]||0;
+    const b=document.createElement("button");
+    b.className = d>=100?"bill":"";
+    b.textContent=`${l} ×${n}`;
+    b.disabled=!n||S.busy;
+    b.onclick=()=>insert(d);
+    hud.den.appendChild(b);
+  });
+}
+$("#hudhide").onclick=()=>$("#hud").classList.add("hidden");
+if(innerWidth<860) $("#hud").classList.add("hidden");   // phones: start collapsed
+$("#hudtoggle").onclick=()=>$("#hud").classList.remove("hidden");
+
+/* ============================================================
+   8. MONEY IN
+   ============================================================ */
+function insert(den){
+  if(S.busy) return;
+  if(!(S.cash[den]>0)){ setVFD("NO "+money(den)+"\nIN WALLET",1400,1); return; }
+  if(S.cardSession) endCard();          // cash overrides an idle card session
+  S.cash[den]--; S.credit+=den;
+  if(den>=100){ sfx.bill(); flashBill(); } else sfx.coin();
+  setVFD("CREDIT "+money(S.credit)+(S.entry?"\nSELECT "+S.entry:"\nMAKE SELECTION"),1200);
+  renderHUD();
+  if(S.entry.length===3) maybeAutoVend();
+}
+function flashBill(){
+  const led=$("#billled");
+  led.style.background="#7dff9a"; led.style.boxShadow="0 0 12px #7dff9a";
+  setTimeout(()=>{led.style.background="#4af";led.style.boxShadow="0 0 7px #4af";},600);
+}
+
+/* popup helper ------------------------------------------------ */
+let openPop=null;
+function popup(anchor,title,rows){
+  closePop();
+  const p=document.createElement("div"); p.className="popup";
+  p.innerHTML=`<h4>${title}</h4>`;
+  rows.forEach(r=>{
+    const b=document.createElement("button");
+    if(r.wide) b.className="wide";
+    b.innerHTML=`<span>${r.label}</span>${r.note?`<small>${r.note}</small>`:""}`;
+    b.disabled=!!r.disabled;
+    b.onclick=e=>{e.stopPropagation(); closePop(); r.act(); };
+    p.appendChild(b);
+  });
+  const c=document.createElement("button"); c.className="close"; c.textContent="cancel";
+  c.onclick=e=>{e.stopPropagation();closePop();}; p.appendChild(c);
+  document.body.appendChild(p);
+  const r=anchor.getBoundingClientRect(), pr=p.getBoundingClientRect();
+  let left=r.left-pr.width-12; if(left<8) left=Math.min(r.right+12,innerWidth-pr.width-8);
+  if(left+pr.width>innerWidth-8) left=innerWidth-pr.width-8;
+  let top=Math.min(Math.max(8,r.top),innerHeight-pr.height-8);
+  p.style.left=left+"px"; p.style.top=top+"px";
+  openPop=p;
+}
+function closePop(){ if(openPop){openPop.remove(); openPop=null;} }
+addEventListener("pointerdown",e=>{ if(openPop&&!openPop.contains(e.target)) closePop(); },true);
+
+/* bill slot --------------------------------------------------- */
+$("#billunit").addEventListener("click",()=>{
+  if(S.busy) return;
+  popup($("#billunit"),"INSERT BILL",[
+    {label:"$5 bill",note:`×${S.cash[500]||0}`,disabled:!S.cash[500],act:()=>insert(500)},
+    {label:"$1 bill",note:`×${S.cash[100]||0}`,disabled:!S.cash[100],act:()=>insert(100)}
+  ]);
+});
+/* coin slot --------------------------------------------------- */
+$("#coinslot").addEventListener("click",()=>{
+  if(S.busy) return;
+  popup($("#coinslot"),"INSERT COIN",[
+    {label:"Quarter — 25¢",note:`×${S.cash[25]||0}`,disabled:!S.cash[25],act:()=>insert(25)},
+    {label:"Dime — 10¢",note:`×${S.cash[10]||0}`,disabled:!S.cash[10],act:()=>insert(10)},
+    {label:"Nickel — 5¢",note:`×${S.cash[5]||0}`,disabled:!S.cash[5],act:()=>insert(5)}
+  ]);
+});
+
+/* ============================================================
+   9. CARD READER
+   ============================================================ */
+/* the instructional loop: tap → insert → cards accepted */
+const scenes=[...lcd.querySelectorAll(".scene")];
+let si=0;
+function showScene(i){ scenes.forEach((s,n)=>s.classList.toggle("on",n===i)); }
+showScene(0);
+setInterval(()=>{ si=(si+1)%scenes.length; showScene(si); },3000);
+
+function lcdMsg(t,ms){
+  lcdStatus.innerHTML=t; lcd.classList.add("busy");
+  if(ms) setTimeout(()=>{ lcd.classList.remove("busy"); },ms);
+}
+$("#reader").addEventListener("click",()=>{
+  if(S.busy) return;
+  if(S.cardSession){
+    popup($("#reader"),"CARD READER",[
+      {label:"Cancel card payment",wide:1,act:()=>{endCard();setVFD("CARD CANCELLED",1200);}}
+    ]); return;
+  }
+  popup($("#reader"),"PAY BY CARD",[
+    {label:"Tap card / phone",note:money(S.card),disabled:S.card<125,act:()=>useCard("tap")},
+    {label:"Insert chip card",note:money(S.card),disabled:S.card<125,act:()=>useCard("chip")}
+  ]);
+});
+function useCard(mode){
+  if(S.card<125){ setVFD("CARD DECLINED\nLOW BALANCE",1800,1); return; }
+  S.busy=true; renderHUD();
+  sfx.card();
+  lcdMsg(mode==="tap"?"● TAP DETECTED<br>READING…":"CARD INSERTED<br>READING CHIP…");
+  setVFD(mode==="tap"?"READING CARD":"READING CHIP");
+  setTimeout(()=>{
+    lcdMsg("APPROVED ✓<br>MAKE SELECTION",2600);
+    S.cardSession=true; S.cardInserted=(mode==="chip"); S.busy=false;
+    sfx.ok(); renderHUD(); refreshVFD();
+    if(S.entry.length===3) maybeAutoVend();
+    // a real reader times its session out
+    clearTimeout(cardTimer);
+    cardTimer=setTimeout(()=>{ if(S.cardSession && !S.busy){ endCard();
+      lcdMsg("SESSION ENDED",1600); setVFD("CARD SESSION\nTIMED OUT",1600); } },30000);
+  },1100);
+}
+let cardTimer=null;
+function endCard(){
+  S.cardSession=false; S.cardInserted=false; clearTimeout(cardTimer); refreshVFD();
+}
+
+/* ============================================================
+   10. KEYPAD
+   ============================================================ */
+function press(el){ el.classList.add("press"); setTimeout(()=>el.classList.remove("press"),110); }
+keys.forEach(k=>k.addEventListener("click",()=>{ press(k); keyIn(k.dataset.k); }));
+okKey.addEventListener("click",()=>{ sfx.ok(); doOK(); });
+
+function keyIn(k){
+  if(S.busy) return;
+  if(k==="C"){ S.entry=""; sfx.key(); highlight(); setVFD("CLEARED",700); return; }
+  if(k==="R"){ coinReturn(); return; }
+  sfx.key();
+  if(S.entry.length>=3) S.entry="";
+  S.entry+=k; highlight();
+  if(S.entry.length===3){ maybeAutoVend(true); } else refreshVFD();
+}
+function highlight(){
+  shelvesEl.querySelectorAll(".tag").forEach(t=>t.classList.remove("active"));
+  if(S.entry.length===3){ const t=tagEl(S.entry); if(t) t.classList.add("active"); }
+}
+/* 3 digits typed: show the price / prompt, but wait for OK (like the real thing) */
+function maybeAutoVend(justTyped){
+  const it=ITEMS[S.entry];
+  if(!it){ if(justTyped) setVFD("INVALID\nSELECTION",1500,1), sfx.bad(); return; }
+  if(it.stock<=0){ setVFD("SOLD OUT\nMAKE ANOTHER",1800,1); sfx.bad(); return; }
+  const need=it.price-(S.cardSession?it.price:S.credit);
+  if(S.cardSession) setVFD("SELECT "+S.entry+"\nPRESS OK "+money(it.price));
+  else if(need>0)   setVFD("PRICE "+money(it.price)+"\nADD "+money(need));
+  else              setVFD("SELECT "+S.entry+"\nPRESS OK");
+}
+function doOK(){
+  if(S.busy) return;
+  if(S.trayItem){ setVFD("TAKE ITEM\nFROM TRAY",1500,1); return; }
+  if(S.entry.length<3){ setVFD("ENTER 3 DIGIT\nCODE",1500,1); sfx.bad(); return; }
+  const it=ITEMS[S.entry];
+  if(!it){ setVFD("INVALID\nSELECTION",1600,1); sfx.bad(); S.entry=""; highlight(); return; }
+  if(it.stock<=0){ setVFD("SOLD OUT",1600,1); sfx.bad(); return; }
+
+  if(S.cardSession){
+    if(S.card<it.price){ setVFD("CARD DECLINED",1800,1); sfx.bad(); endCard(); return; }
+    S.card-=it.price; lcdMsg("CHARGED "+money(it.price)+"<br>"+
+      (S.cardInserted?"REMOVE CARD":"THANK YOU"),3000);
+    endCard(); vend(it,0);
+    return;
+  }
+  if(S.credit<it.price){
+    setVFD("PRICE "+money(it.price)+"\nADD "+money(it.price-S.credit),2000,1); sfx.bad(); return;
+  }
+  const change=S.credit-it.price;
+  S.credit=0;
+  vend(it,change);
+}
+
+/* ============================================================
+   11. VENDING
+   ============================================================ */
+function vend(it,change){
+  S.busy=true; renderHUD();
+  setVFD("VENDING…");
+  sfx.motor();
+  const slot=slotEl(it.code);
+  const holder=slot.querySelector(".itemholder");
+  const coils=[...slot.querySelectorAll(".coil")];
+  // the coil turns and its thread marches forward, walking the product out
+  coils.forEach(c=>c.classList.add("spin"));
+  holder.style.transition="transform .9s cubic-bezier(.4,.1,.8,.6)";
+  holder.classList.add("pushing");
+
+  setTimeout(()=>{
+    coils.forEach(c=>c.classList.remove("spin"));
+    holder.classList.remove("pushing"); holder.style.transition="";
+    // the pack tips out of its coil and falls behind the glass; once it passes the
+    // bottom of the display case the cabinet body hides it, and it lands in the bin
+    const clone=holder.cloneNode(true);
+    const r=holder.getBoundingClientRect(), gr=glassEl.getBoundingClientRect();
+    const w=r.width/scale, h=r.height/scale;
+    const drop=(gr.bottom-r.top)/scale + h*0.6;   // clears the glass, then is clipped
+    clone.style.cssText=`position:absolute;left:${(r.left-gr.left)/scale}px;
+      top:${(r.top-gr.top)/scale}px;width:${w}px;height:${h}px;
+      --dx:${(Math.random()*12-6).toFixed(1)}px;--dy:${drop.toFixed(1)}px;
+      --rot:${(Math.random()*46-23).toFixed(1)}deg;
+      animation:vendfall .8s cubic-bezier(.32,.02,.72,1) forwards`;
+    fx.appendChild(clone);
+    // the thud lands as it drops out of sight into the bin
+    setTimeout(()=>{ sfx.thud(); },680);
+
+    setTimeout(()=>{
+      clone.remove();
+      it.stock--;
+      if(it.stock<=0){
+        holder.remove(); slot.querySelectorAll(".coil").forEach(c=>c.style.opacity=".55");
+        const g=document.createElement("div"); g.className="soldout"; g.textContent="SOLD OUT";
+        slot.insertBefore(g,slot.firstChild);
+        tagEl(it.code).classList.add("out");
+      }
+      bayItem.innerHTML=it.art();
+      const pk=bayItem.firstElementChild;
+      const bw=Math.min(it.w*1.15,150);
+      pk.style.width=bw+"px"; pk.style.height=(bw*it.h/it.w)+"px";
+      pk.style.setProperty("--u",(bw/it.w)+"px");
+      pk.style.transform="rotate(-6deg)";
+      bayItem.classList.add("show");
+      S.trayItem=it.code;
+      doorEl.classList.add("ready"); doorLabel.textContent="PUSH TO TAKE ITEM";
+
+      if(change>0) dropChange(change);
+      S.entry=""; highlight();
+      S.bought++; S.busy=false; renderHUD();
+      setVFD(change>0?"CHANGE "+money(change)+"\nPUSH TRAY":"THANK YOU\nPUSH TRAY",2600);
+      setTimeout(refreshVFD,2700);
+    },820);
+  },900);
+}
+
+/* ---- change ---- */
+function dropChange(amount){
+  const dens=[100,25,10,5]; const out=[];
+  let left=amount;
+  for(const d of dens){ while(left>=d){ out.push(d); left-=d; } }
+  out.forEach((d,i)=>setTimeout(()=>{
+    S.change.push(d);
+    const c=document.createElement("div");
+    c.className="coin c"+String(d).padStart(2,"0");
+    c.textContent = d===100?"$1":(d===25?"25":d===10?"10":"5");
+    coinTray.appendChild(c); coinTray.classList.add("has");
+    sfx.coin();
+  }, 180*i));
+}
+function collectChange(){
+  if(!S.change.length) return;
+  S.change.forEach(d=>S.cash[d]=(S.cash[d]||0)+1);
+  const amt=S.change.reduce((a,b)=>a+b,0);
+  S.change=[]; coinTray.innerHTML=""; coinTray.classList.remove("has");
+  sfx.coin(); renderHUD();
+  setVFD("TOOK "+money(amt),1200);
+}
+coinTray.addEventListener("click",collectChange);
+$("#coinbtn").addEventListener("click",e=>{e.stopPropagation();coinReturn();});
+function coinReturn(){
+  if(S.busy) return;
+  if(S.cardSession){ endCard(); setVFD("CARD CANCELLED",1300); sfx.key(); return; }
+  if(S.credit<=0){ collectChange(); if(!S.change.length) setVFD("NO CREDIT",1100); return; }
+  const amt=S.credit; S.credit=0; S.entry=""; highlight();
+  dropChange(amt);
+  setVFD("RETURNED\n"+money(amt),1800);
+  renderHUD();
+}
+
+/* ============================================================
+   12. DOOR / RETRIEVAL
+   ============================================================ */
+let doorOpen=false, doorTimer=null;
+function pushDoor(){
+  if(doorOpen) return;
+  doorOpen=true; doorEl.classList.add("pushed"); sfx.door();
+  clearTimeout(doorTimer);
+  if(S.trayItem){
+    setTimeout(retrieve,320);
+  }else{
+    setVFD("TRAY EMPTY",1100);
+    doorTimer=setTimeout(releaseDoor,650);
+  }
+}
+function releaseDoor(){ doorOpen=false; doorEl.classList.remove("pushed"); }
+doorEl.addEventListener("pointerdown",e=>{e.preventDefault();pushDoor();});
+doorEl.addEventListener("pointerup",()=>{ if(!S.trayItem) releaseDoor(); });
+doorEl.addEventListener("pointerleave",()=>{ if(!S.trayItem) releaseDoor(); });
+doorEl.addEventListener("keydown",e=>{ if(e.key===" "||e.key==="Enter"){e.preventDefault();pushDoor();} });
+
+const reveal=$("#reveal"), revealItem=$("#revealitem"), revealBlurb=$("#revealtext");
+const revealText=revealBlurb.firstElementChild;
+/* re-arm a CSS animation so it plays again on the next retrieval */
+function restartAnim(el,anim){ el.style.animation="none"; void el.offsetWidth; el.style.animation=anim; }
+function retrieve(){
+  const it=ITEMS[S.trayItem]; if(!it) return;
+  S.trayItem=null;
+  bayItem.classList.remove("show"); bayItem.innerHTML="";
+  doorEl.classList.remove("ready"); doorLabel.textContent="PUSH";
+  setTimeout(releaseDoor,420);
+  revealItem.innerHTML=it.art();
+  let rh=Math.min(innerHeight*.54,440), rw=rh*it.w/it.h;
+  const maxW=Math.min(innerWidth*.72,360);
+  if(rw>maxW){ rw=maxW; rh=rw*it.h/it.w; }
+  revealItem.style.width=rw+"px"; revealItem.style.height=rh+"px";
+  const rpk=revealItem.firstElementChild;
+  rpk.style.width="100%"; rpk.style.height="100%";
+  rpk.style.setProperty("--u",(rw/it.w)+"px");
+  revealText.textContent=it.name;
+  reveal.classList.add("on");
+  restartAnim(revealItem,"comeforward 1.15s cubic-bezier(.16,.9,.24,1) both");
+  restartAnim(revealBlurb,"fadein .6s .7s both");
+  tone(880,.09,"sine",.05); setTimeout(()=>tone(1320,.16,"sine",.045),100);
+  refreshVFD();
+}
+function closeReveal(){
+  if(!reveal.classList.contains("on")) return;
+  reveal.classList.remove("on"); revealItem.innerHTML="";
+  refreshVFD();
+}
+reveal.addEventListener("click",closeReveal);
+
+/* ============================================================
+   13. KEYBOARD
+   ============================================================ */
+addEventListener("keydown",e=>{
+  if(reveal.classList.contains("on")){ closeReveal(); return; }
+  if(/^[0-9]$/.test(e.key)){
+    const k=[...keys].find(x=>x.dataset.k===e.key); if(k){press(k);keyIn(e.key);}
+  }else if(e.key==="Enter"){ press(okKey); sfx.ok(); doOK(); }
+  else if(e.key==="Escape"){ coinReturn(); }
+  else if(e.key==="Backspace"){ e.preventDefault(); keyIn("C"); }
+  else if(e.key.toLowerCase()==="p"||e.key===" "){ e.preventDefault(); pushDoor(); }
+});
+
+/* ============================================================
+   14. RESPONSIVE SCALING
+   ============================================================ */
+const DW=760, DH=1210;
+function fit(){
+  const w=innerWidth, h=innerHeight;
+  const narrow = w<820;
+  let s = narrow ? (w-14)/DW : Math.min((w-40)/DW,(h-24)/DH);
+  s=Math.max(.28,Math.min(s,1.35));
+  scale=s;
+  stage.style.transform=`scale(${s})`;
+  const used=DH*s;
+  const pad = Math.max(narrow?8:12, Math.min(110,(h-used)/2));
+  document.body.style.height = (used+pad+(narrow?18:16)) + "px";
+  document.body.style.minHeight="100%";
+  $("#viewport").style.height = used + "px";
+  $("#viewport").style.paddingTop = pad+"px";
+}
+addEventListener("resize",fit); addEventListener("orientationchange",()=>setTimeout(fit,120));
+fit(); renderHUD();
+
+/* prime audio on first gesture */
+["pointerdown","keydown"].forEach(ev=>addEventListener(ev,()=>ac(),{once:true}));
+</script>
+</body>
+</html>
