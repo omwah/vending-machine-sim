@@ -74,6 +74,7 @@ body{
 }
 #machine{
   position:absolute;inset:0;
+  z-index:2;
   border-radius:14px 14px 6px 6px;
   background:
     linear-gradient(100deg, rgba(255,255,255,.28), rgba(0,0,0,0) 22%),
@@ -936,6 +937,72 @@ body{
   14%{transform:translate(1px,6px) rotate(2.5deg)}
   100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
 
+/* temporary effect surfaces; all are empty while the machine is idle */
+#fxrear,#fxfront{position:absolute;inset:0;pointer-events:none}
+#fxrear{z-index:1;overflow:visible}
+#fxfront{z-index:6;overflow:visible}
+.fx-blood{position:absolute;width:5px;height:13px;border-radius:60% 60% 70% 70%;z-index:8;
+  background:linear-gradient(90deg,#3d0205,#a30910 48%,#3b0103);filter:drop-shadow(0 2px 2px #000);
+  animation:blooddrop .72s ease-in forwards}
+@keyframes blooddrop{0%{transform:translateY(0) scaleY(.25);opacity:0}18%{opacity:1}
+  100%{transform:translateY(var(--blood-y,150px)) scaleY(1.25);opacity:.75}}
+.fx-fright{position:absolute;inset:0;z-index:12;pointer-events:none}
+.fx-fright .eye{position:absolute;top:28%;width:18%;height:19%;border-radius:50%;background:#fff;
+  box-shadow:inset 0 0 0 2px #17120f}
+.fx-fright .eye::after{content:"";position:absolute;width:28%;height:42%;left:36%;top:35%;border-radius:50%;background:#15100d}
+.fx-fright .eye.l{left:25%}.fx-fright .eye.r{right:25%}
+.fx-fright .mouth{position:absolute;left:38%;top:53%;width:24%;height:21%;border-radius:50% 50% 44% 44%;
+  background:#1a0707;box-shadow:inset 0 2px 0 rgba(255,255,255,.4)}
+.fx-sweat{position:absolute;width:6px;height:11px;border-radius:60% 60% 70% 70%;background:#90dfff;
+  box-shadow:0 0 5px #8ce1ff;animation:sweat .7s ease-in infinite}
+@keyframes sweat{to{transform:translateY(18px);opacity:0}}
+.itemholder.fx-scared{animation:scaredshake .12s linear infinite}
+@keyframes scaredshake{0%,100%{transform:translate(-3px,0) rotate(-2deg)}50%{transform:translate(3px,-1px) rotate(2deg)}}
+.itemholder.fx-faint{animation:faintover .55s ease-in forwards}
+@keyframes faintover{to{transform:translateY(5px) rotate(82deg);filter:saturate(.45)}}
+.itemholder.fx-puff{animation:puffpack 1.15s ease-in-out both}
+@keyframes puffpack{0%,100%{transform:scale(1)}35%{transform:scale(.72,1.15)}68%{transform:scale(1.34,1.18)}}
+#machine.fx-shudder{animation:machineshudder .48s linear 2}
+@keyframes machineshudder{0%,100%{transform:translate(0)}25%{transform:translate(-2px,1px)}75%{transform:translate(2px,-1px)}}
+.fx-gremlin{position:absolute;right:-88px;top:245px;width:118px;height:150px;opacity:0;
+  filter:drop-shadow(0 14px 12px rgba(0,0,0,.8));transform:translateX(0) rotate(8deg)}
+.fx-gremlin::before{content:"";position:absolute;left:22px;top:31px;width:75px;height:88px;border-radius:45% 45% 38% 38%;
+  background:radial-gradient(circle at 36% 35%,#f6e564 0 4px,#17130b 5px 8px,transparent 9px),
+    radial-gradient(circle at 68% 35%,#f6e564 0 4px,#17130b 5px 8px,transparent 9px),
+    linear-gradient(130deg,#526229,#1d2812 66%,#0b1007);box-shadow:inset 0 -12px 18px #080b05}
+.fx-gremlin::after{content:"";position:absolute;left:1px;top:17px;width:116px;height:43px;
+  background:linear-gradient(24deg,transparent 0 18%,#263517 19% 42%,transparent 43% 57%,#263517 58% 81%,transparent 82%);
+  clip-path:polygon(0 15%,42% 78%,50% 100%,58% 78%,100% 15%,82% 100%,18% 100%)}
+.fx-gremlin .body{position:absolute;left:30px;top:105px;width:62px;height:43px;border-radius:45% 45% 20% 20%;
+  background:linear-gradient(120deg,#34451e,#11180b)}
+.fx-gremlin .grin{position:absolute;left:43px;top:82px;width:40px;height:16px;border-radius:0 0 50% 50%;z-index:2;
+  background:repeating-linear-gradient(90deg,#eee4b9 0 5px,#2b1b0d 5px 6px);transform-origin:center}
+.fx-gremlin.on{animation:gremlinvisit 3.7s cubic-bezier(.2,.8,.3,1) both}
+@keyframes gremlinvisit{0%{opacity:0;transform:translateX(0) rotate(8deg)}14%,62%{opacity:1;transform:translateX(-142px) rotate(-3deg)}
+  70%{opacity:1;transform:translateX(-142px) rotate(0) scale(1.06)}82%{opacity:1;transform:translateX(-142px) rotate(4deg)}
+  100%{opacity:0;transform:translateX(20px) rotate(13deg)}}
+.fx-crumb{position:absolute;width:9px;height:8px;border-radius:45%;background:#6d3517;z-index:8;
+  box-shadow:inset 1px 1px 0 #d7923e;animation:crumbfall .9s ease-in forwards}
+@keyframes crumbfall{to{transform:translate(var(--crumb-x),var(--crumb-y)) rotate(var(--crumb-r));opacity:.25}}
+.pk.fx-torn{clip-path:polygon(0 0,43% 0,47% 8%,54% 1%,61% 9%,67% 0,100% 0,100% 100%,0 100%)}
+.fx-stream{position:absolute;width:9px;border-radius:50% 50% 30% 30%;z-index:8;
+  background:linear-gradient(90deg,#0759bd,#40bcff 48%,#06366f);transform-origin:top;
+  animation:pourstream 1.25s ease-in-out both}
+@keyframes pourstream{0%,100%{height:0;opacity:0}18%,76%{height:var(--stream-h);opacity:.9}}
+.fx-plant{position:absolute;left:50%;bottom:0;width:6px;height:0;z-index:6;border-radius:8px 8px 0 0;
+  background:linear-gradient(90deg,#143b16,#68a83a,#183d18);transform-origin:bottom;
+  animation:plantgrow 2.25s ease-in-out both}
+.fx-plant i{position:absolute;width:38px;height:18px;border-radius:100% 0 100% 0;background:#4f8c2d;
+  box-shadow:inset 0 0 8px #173b17;transform:scale(0);animation:leafgrow .5s var(--leaf-delay) ease-out forwards}
+.fx-plant i:nth-child(odd){right:2px;transform-origin:right bottom}.fx-plant i:nth-child(even){left:2px;transform-origin:left bottom;rotate:180deg}
+@keyframes plantgrow{0%{height:0;opacity:0}18%{opacity:1}68%{height:430px;opacity:1}88%{height:430px;opacity:.8}100%{height:360px;opacity:0}}
+@keyframes leafgrow{to{transform:scale(1)}}
+#glass.fx-sickly{animation:sicklyflash .8s ease-in-out 2}
+@keyframes sicklyflash{50%{filter:hue-rotate(38deg) saturate(1.6);box-shadow:inset 0 0 36px rgba(92,190,44,.35)}}
+@media (prefers-reduced-motion:reduce){
+  .itemholder.fx-scared,.itemholder.fx-faint,.itemholder.fx-puff,#machine.fx-shudder,.fx-gremlin.on,.fx-plant{animation-duration:.01ms!important}
+}
+
 /* ---------- narrow / mobile ---------- */
 @media (max-width:860px){
   #hud{font-size:10.5px}
@@ -948,6 +1015,7 @@ body{
 
 <div id="viewport">
 <div id="stage">
+  <div id="fxrear" aria-hidden="true"></div>
   <div id="machine">
 
     <!-- ============ LEFT: GLASS CABINET ============ -->
@@ -1138,6 +1206,7 @@ body{
       </div>
     </div>
   </div>
+  <div id="fxfront" aria-hidden="true"></div>
 
 </div>
 </div>
@@ -1272,20 +1341,22 @@ function stick(o){
 // w/h are the on-shelf footprint in design px.
 const SHELVES = [
   [ // 1xx — chips
-    {code:"101",price:125,name:"Utz Original Potato Chips",w:88,h:92,
-      art:()=>bag({brand:"Utz",script:1,bs:22,flav:"Original Potato Chips",c1:"#f4f6f7",c2:"#dfe6ea",c3:"#b9c6cd",tc:"#c8102e",fc:"#c8102e",food:"potato",n:10,po:{w:30},oz:"1.5"})},
-    {code:"103",price:125,name:"Sun Chips Harvest Cheddar",w:88,h:92,
-      art:()=>bag({brand:"SunChips",bs:15,flav:"Harvest Cheddar",c1:"#ffd15c",c2:"#f08a24",c3:"#c85c12",tc:"#6b3a06",fc:"#7d2b0b",food:"corn",n:9,po:{w:28,ar:1.25},oz:"1.5"})},
-    {code:"105",price:125,name:"Ruffles Cheddar & Sour Cream",w:88,h:92,
-      art:()=>bag({brand:"RUFFLES",bs:14,flav:"Cheddar &amp; Sour Cream",c1:"#2f5fd0",c2:"#1a3f9c",c3:"#0f2668",tc:"#ffffff",fc:"#ffe066",food:"potato",n:10,po:{w:30},oz:"1.5"})},
-    {code:"107",price:150,name:"Doritos Nacho Cheese",w:88,h:92,
-      art:()=>bag({brand:"DORITOS",bs:12,flav:"Nacho Cheese",c1:"#e2321f",c2:"#a3160c",c3:"#5e0a05",tc:"#ffe89a",fc:"#ffd45c",food:"tortilla",n:6,po:{w:40,rot:50},oz:"1.75"})}
+    {id:"bachelor-chow",effectId:"bachelor",clueId:"300",code:"101",price:125,name:"Bachelor Chow",w:88,h:92,
+      art:()=>bag({brand:"BACHELOR",bs:12,flav:"CHOW — Now With Flavor",c1:"#d27a22",c2:"#924315",c3:"#4e200b",tc:"#fff0bd",fc:"#fff0bd",food:["cracker","meat"],n:10,po:{w:28},oz:"2.0"})},
+    {id:"soylent-green",effectId:"soylent",clueId:"202",code:"103",price:125,name:"Soylent Green",w:88,h:92,
+      art:()=>pack({brand:"SOYLENT",flav:"GREEN — High Energy Wafer",c1:"#4b8b3b",c2:"#235521",c3:"#102d13",tc:"#e8f5ce",fc:"#e8f5ce",food:"wafer",n:5,po:{w:34,ar:1.6,rot:4}})},
+    {id:"scooby-snacks",effectId:"scooby",clueId:"969",code:"105",price:125,name:"Scooby Snacks",w:88,h:92,
+      art:()=>bag({brand:"SCOOBY",bs:14,flav:"SNACKS — Dog-Gone Good",c1:"#5b8ec7",c2:"#335b91",c3:"#192d52",tc:"#ffe98b",fc:"#ffe98b",food:"cracker",n:8,po:{w:30,ar:.82},oz:"1.5"})},
+    {id:"stay-puft",effectId:"staypuft",clueId:"100",code:"107",price:150,name:"Stay Puft Marshmallows",w:88,h:92,
+      art:()=>bag({brand:"STAY PUFT",bs:11,flav:"Marshmallows — Soft &amp; Sweet",c1:"#f5f7f8",c2:"#d9e5ef",c3:"#94b7d1",tc:"#184d8d",fc:"#d32632",food:"pop",n:10,po:{w:29,rot:0},plight:1,oz:"1.8"})}
   ],
   [ // 2xx — chips & popcorn
-    {code:"201",price:125,name:"Party Mix Snack Mix",w:88,h:90,
-      art:()=>bag({brand:"PartyMix",bs:14,flav:"Original Snack Mix",c1:"#f2e2c0",c2:"#d9b177",c3:"#a97b40",tc:"#7a1f10",fc:"#7a1f10",food:["cracker","corn","nut","cracker"],n:9,po:{w:30},oz:"2.0"})},
-    {code:"203",price:125,name:"Cape Cod Kettle Chips",w:88,h:90,
-      art:()=>bag({brand:"CAPE COD",bs:12,flav:"Original Kettle Cooked",c1:"#f7f7f4",c2:"#e6e9e6",c3:"#c3cbc7",tc:"#0d3b6b",fc:"#0d3b6b",food:"kettle",n:10,po:{w:31},oz:"1.5"})},
+    {id:"after-midnight",effectId:"midnight",clueId:"000",code:"201",price:125,name:"After Midnight Bites",w:88,h:90,
+      art:()=>bag({brand:"AFTER",bs:14,flav:"MIDNIGHT BITES — Keep Dry",c1:"#16131f",c2:"#0c0a11",c3:"#030204",tc:"#b7e34c",fc:"#ef4b42",food:["cracker","nut"],n:9,po:{w:29},oz:"2.0"}),
+      trayArt:()=>{const wrap=document.createElement("div");wrap.innerHTML=bag({brand:"AFTER",bs:14,flav:"MIDNIGHT BITES — TORN OPEN",c1:"#16131f",c2:"#0c0a11",c3:"#030204",tc:"#b7e34c",fc:"#ef4b42",food:["cracker","nut"],n:9,po:{w:29},oz:"2.0"});wrap.firstElementChild.classList.add("fx-torn");return wrap.innerHTML;}},
+    {id:"brawndo",effectId:"brawndo",clueId:"808",code:"203",price:125,name:"Brawndo",w:88,h:90,
+      art:()=>pouch({brand:"BRAWNDO<br>THE THIRST MUTILATOR",food:["jelly b","jelly g"],n:9,
+        po:{w:28,ar:1.8},c1:"#1478d4",c2:"#06367d",tc:"#efff42"})},
     {code:"205",price:125,name:"Go Lite! Popped Chips",w:88,h:90,
       art:()=>bag({brand:"GO LITE!",bs:13,flav:"100 Calorie Popped",c1:"#e5d3f2",c2:"#b98fd8",c3:"#7d4faa",tc:"#3d1a5c",fc:"#4d2470",food:"pop",n:10,po:{w:30},plight:1,oz:"0.8"})},
     {code:"207",price:150,name:"Sweet Potato Tortilla Chips",w:88,h:90,
@@ -1381,9 +1452,23 @@ const S = {
   busy:false,
   change:[],              // coin denominations sitting in the return
   trayItem:null,          // code awaiting retrieval
-  bought:0
+  bought:0,
+  mode:"idle",
+  activeVend:null
 };
 const cashTotal = () => Object.entries(S.cash).reduce((s,[d,n])=>s+d*n,0);
+
+const META_KEY="vending-machine-meta-v1";
+function loadMeta(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(META_KEY)||"null");
+    if(raw&&raw.version===1&&Array.isArray(raw.discovered)&&Array.isArray(raw.solved))
+      return {version:1,discovered:[...new Set(raw.discovered)],solved:[...new Set(raw.solved)],replay:Number(raw.replay)||0};
+  }catch(e){}
+  return {version:1,discovered:[],solved:[],replay:0};
+}
+const META=loadMeta();
+function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify(META));}catch(e){}}
 
 /* ============================================================
    3. DOM
@@ -1393,7 +1478,20 @@ const shelvesEl=$("#shelves"), vfd=$("#vfd"), fx=$("#fxglass"), stage=$("#stage"
 const glassEl=$("#glass");
 const doorEl=$("#door"), bayItem=$("#bayitem"), doorLabel=$("#door .push");
 const coinTray=$("#cointray"), lcd=$("#lcd"), lcdStatus=$("#lcdstatus");
+const machineEl=$("#machine"), fxRear=$("#fxrear"), fxFront=$("#fxfront");
 let scale=1;
+
+function setMode(mode){S.mode=mode;S.busy=!["idle","transaction","awaitingPickup"].includes(mode);renderHUD();}
+const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+class EffectScope{
+  constructor(){this.nodes=[];this.classes=[];this.cleanups=[];this.cancelled=false;}
+  node(parent,el){parent.appendChild(el);this.nodes.push(el);return el;}
+  cls(el,name){el.classList.add(name);this.classes.push([el,name]);}
+  cleanup(){if(this.cancelled)return;this.cancelled=true;
+    this.cleanups.reverse().forEach(fn=>{try{fn();}catch(e){}});
+    this.classes.reverse().forEach(([el,name])=>el.classList.remove(name));
+    this.nodes.reverse().forEach(el=>el.remove());}
+}
 
 /* ============================================================
    BAMBOO SPRIG — thin stems carrying fans of lance-shaped leaves
@@ -1563,8 +1661,128 @@ const sfx={
     g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+1.25);o.stop(c.currentTime+1.3);},
   thud:()=>{tone(70,.22,"sine",.09,-30);noise(.12,.05,300);},
   door:()=>noise(.18,.05,400),
-  card:()=>{tone(1000,.08,"sine",.05);setTimeout(()=>tone(1600,.12,"sine",.045),110);}
+  card:()=>{tone(1000,.08,"sine",.05);setTimeout(()=>tone(1600,.12,"sine",.045),110);},
+  laugh:()=>{[420,560,390,650].forEach((f,i)=>setTimeout(()=>tone(f,.13,"sawtooth",.035,-90),i*115));},
+  ghost:()=>{tone(520,.4,"sine",.035,-300);noise(.35,.025,1200);}
 };
+
+/* ============================================================
+   PRODUCT EFFECTS — presentation-only lifecycle hooks
+   ============================================================ */
+const CLUES={
+  "300":"ORDER 300<br>ACCOUNT CLOSED",
+  "202":"SERVING 202<br>SOURCE UNKNOWN",
+  "969":"CASE 969<br>DO NOT SPLIT UP",
+  "100":"FORM 100<br>CLEAR YOUR MIND",
+  "000":"FEED 000<br>KEEP IT DRY",
+  "808":"FORMULA 808<br>SOIL REJECTED"
+};
+
+function effectContext(active,slot,holder){
+  return {active,item:active.item,slot,holder,scope:active.scope,
+    vfd:(a,b,ms=0,alert=0)=>setVFD(b===undefined?a:`${a}\n${b}`,ms,alert),
+    lcd:(html,ms)=>lcdMsg(html,ms),delay,sfx,glass:glassEl,machine:machineEl,
+    fxGlass:fx,fxRear,fxFront};
+}
+function makeDrops(ctx,count=7){
+  const hr=ctx.holder.getBoundingClientRect(),gr=glassEl.getBoundingClientRect();
+  for(let i=0;i<count;i++){
+    const d=document.createElement("i");d.className="fx-blood";
+    d.style.left=((hr.left-gr.left)/scale+hr.width/scale*(.2+i/(count+2)))+"px";
+    d.style.top=((hr.bottom-gr.top)/scale-7)+"px";
+    d.style.setProperty("--blood-y",(125+Math.random()*95)+"px");
+    d.style.animationDelay=(i*.12)+"s";ctx.scope.node(fx,d);
+  }
+}
+function makeCrumbs(ctx,count=11){
+  const hr=ctx.holder.getBoundingClientRect(),gr=glassEl.getBoundingClientRect();
+  for(let i=0;i<count;i++){
+    const c=document.createElement("i");c.className="fx-crumb";
+    c.style.left=((hr.left-gr.left)/scale+hr.width/scale*(.18+Math.random()*.64))+"px";
+    c.style.top=((hr.bottom-gr.top)/scale-12)+"px";
+    c.style.setProperty("--crumb-x",(Math.random()*46-23)+"px");
+    c.style.setProperty("--crumb-y",((gr.bottom-hr.bottom)/scale+75)+"px");
+    c.style.setProperty("--crumb-r",(Math.random()*420-210)+"deg");
+    c.style.animationDelay=(i*.055)+"s";ctx.scope.node(fx,c);
+  }
+}
+
+const EFFECTS={
+  default:{},
+  bachelor:{async preFall(ctx){ctx.vfd("SHUT UP AND","TAKE MY MONEY!");await ctx.delay(1650);}},
+  soylent:{async preFall(ctx){
+    makeDrops(ctx);ctx.scope.cls(glassEl,"fx-sickly");await ctx.delay(1250);
+    ctx.active.afterRelease=()=>ctx.vfd("YOU'LL LOVE WHAT","IT'S MADE OUT OF",2200);
+    ctx.active.postFallDelay=1400;
+  }},
+  scooby:{async preFall(ctx){
+    const face=document.createElement("div");face.className="fx-fright";
+    face.innerHTML='<i class="eye l"></i><i class="eye r"></i><i class="mouth"></i>';
+    ctx.scope.node(ctx.holder,face);
+    for(let i=0;i<3;i++){const sw=document.createElement("i");sw.className="fx-sweat";
+      sw.style.cssText=`left:${i%2?82:12}%;top:${23+i*12}%;animation-delay:${i*.18}s`;ctx.scope.node(ctx.holder,sw);}
+    ctx.scope.cls(ctx.holder,"fx-scared");ctx.vfd("GGGG-GHOST!");ctx.sfx.ghost();await ctx.delay(1450);
+    ctx.holder.classList.remove("fx-scared");ctx.scope.cls(ctx.holder,"fx-faint");await ctx.delay(720);
+  }},
+  staypuft:{async preFall(ctx){
+    ctx.scope.cls(ctx.holder,"fx-puff");ctx.scope.cls(machineEl,"fx-shudder");
+    tone(95,.7,"sine",.045,90);await ctx.delay(1250);
+  }},
+  midnight:{async preFall(ctx){
+    ctx.active.skipPackageFall=true;
+    const g=document.createElement("div");g.className="fx-gremlin";
+    g.innerHTML='<i class="body"></i><i class="grin"></i>';ctx.scope.node(fxFront,g);
+    void g.offsetWidth;g.classList.add("on");
+    await ctx.delay(1200);ctx.scope.cls(ctx.holder.firstElementChild,"fx-torn");makeCrumbs(ctx);
+    await ctx.delay(650);ctx.sfx.laugh();ctx.vfd("HEH HEH HEH");
+    await ctx.delay(2050);
+  }},
+  brawndo:{async preFall(ctx){
+    ctx.active.skipPackageFall=true;
+    const hr=ctx.holder.getBoundingClientRect(),gr=glassEl.getBoundingClientRect();
+    const stream=document.createElement("i");stream.className="fx-stream";
+    stream.style.left=((hr.left-gr.left+hr.width*.52)/scale)+"px";
+    stream.style.top=((hr.bottom-gr.top)/scale-10)+"px";
+    stream.style.setProperty("--stream-h",((gr.bottom-hr.bottom)/scale+30)+"px");ctx.scope.node(fx,stream);
+    await ctx.delay(700);
+    const plant=document.createElement("div");plant.className="fx-plant";
+    for(let i=0;i<8;i++){const leaf=document.createElement("i");leaf.style.bottom=(38+i*45)+"px";
+      leaf.style.setProperty("--leaf-delay",(.18+i*.13)+"s");plant.appendChild(leaf);}
+    ctx.scope.node(fx,plant);ctx.vfd("ITS GOT WHAT","PLANTS CRAVE");tone(160,.8,"sine",.035,140);
+    await ctx.delay(2400);
+  }}
+};
+
+function discoverClue(it){
+  if(!it.clueId||META.discovered.includes(it.clueId))return;
+  META.discovered.push(it.clueId);saveMeta();
+  const clue=CLUES[it.clueId];if(clue)lcdMsg(clue,3600);
+}
+
+const SECRET_COMMANDS={
+  "300":{title:"ORDER ACCEPTED",text:"THE LAST CUSTOMER NEVER LEFT",event:"reverse"},
+  "202":{title:"NUTRITION RECORD",text:"DONOR FIELD: REDACTED",event:"glass"},
+  "969":{title:"INCIDENT REPORT",text:"THE FOOTSTEPS NUMBER FIVE",event:"keys"},
+  "100":{title:"MANIFESTATION",text:"IT BORROWED THE CHOSEN SHAPE",event:"shudder"},
+  "000":{title:"CARE INSTRUCTIONS",text:"IT WAS NEVER FED. IT STILL GREW.",event:"rear"},
+  "808":{title:"AGRONOMY LOG",text:"THE SOIL REFUSED TO DRINK",event:"plant"}
+};
+async function runSecretCommand(code){
+  const cmd=SECRET_COMMANDS[code];if(!cmd||!META.discovered.includes(code))return false;
+  S.entry="";highlight();setMode("secretEvent");const scope=new EffectScope();
+  try{
+    setVFD(cmd.title,0,1);lcdMsg(cmd.text,3600);sfx.ghost();
+    if(cmd.event==="glass")scope.cls(glassEl,"fx-sickly");
+    if(cmd.event==="shudder")scope.cls(machineEl,"fx-shudder");
+    if(cmd.event==="keys")keys.forEach((k,i)=>setTimeout(()=>press(k),i*45));
+    if(cmd.event==="reverse")[...cascade].reverse().flat().forEach((el,i)=>setTimeout(()=>el.classList.add("lit"),i*45));
+    if(cmd.event==="rear"){const g=document.createElement("div");g.className="fx-gremlin on";g.innerHTML='<i class="body"></i><i class="grin"></i>';scope.node(fxRear,g);}
+    if(cmd.event==="plant"){const plant=document.createElement("div");plant.className="fx-plant";scope.node(fx,plant);}
+    await delay(3700);
+    if(!META.solved.includes(code)){META.solved.push(code);saveMeta();}
+  }finally{scope.cleanup();cascade.flat().forEach(el=>el.classList.remove("lit"));lcd.classList.remove("busy");setMode("idle");refreshVFD();}
+  return true;
+}
 
 /* ============================================================
    5. VFD
@@ -1579,6 +1797,7 @@ function setVFD(txt,holdMs,alert){
 }
 function refreshVFD(){
   if(vfdHold) return;
+  if(S.mode==="secretEvent") return;
   if(S.trayItem){ vfd.textContent="PUSH TRAY\nTAKE ITEM"; return; }
   if(S.entry){
     vfd.textContent = "SELECT " + S.entry.padEnd(3,"_") +
@@ -1587,9 +1806,13 @@ function refreshVFD(){
   }
   if(S.cardSession){ vfd.textContent="CARD ACCEPTED\nMAKE SELECTION"; return; }
   if(S.credit>0){ vfd.textContent="CREDIT "+money(S.credit)+"\nMAKE SELECTION"; return; }
+  if(META.discovered.length&&idleFlip>0&&idleFlip%7===6){
+    const code=META.discovered[META.replay%META.discovered.length];META.replay++;saveMeta();
+    vfd.textContent=(CLUES[code]||"").replace(/<br>/g,"\n");return;
+  }
   vfd.textContent = (idleFlip%2===0) ? "READY" : "MAKE YOUR\nSELECTION";
 }
-setInterval(()=>{ if(!vfdHold && !S.entry && !S.credit && !S.cardSession && !S.trayItem){
+setInterval(()=>{ if(S.mode==="idle"&&!vfdHold && !S.entry && !S.credit && !S.cardSession && !S.trayItem){
   idleFlip++; refreshVFD(); } }, 2200);
 refreshVFD();
 
@@ -1644,6 +1867,7 @@ function insert(den){
   if(!(S.cash[den]>0)){ setVFD("NO "+money(den)+"\nIN WALLET",1400,1); return; }
   if(S.cardSession) endCard();          // cash overrides an idle card session
   S.cash[den]--; S.credit+=den;
+  setMode("transaction");
   if(den>=100){ sfx.bill(); flashBill(); } else sfx.coin();
   setVFD("CREDIT "+money(S.credit)+(S.entry?"\nSELECT "+S.entry:"\nMAKE SELECTION"),1200);
   renderHUD();
@@ -1728,14 +1952,14 @@ $("#reader").addEventListener("click",()=>{
 });
 function useCard(mode){
   if(S.card<125){ setVFD("CARD DECLINED\nLOW BALANCE",1800,1); return; }
-  S.busy=true; renderHUD();
+  setMode("payment");
   sfx.card();
   lcdMsg(mode==="tap"?"● TAP DETECTED<br>READING…":"CARD INSERTED<br>READING CHIP…");
   setVFD(mode==="tap"?"READING CARD":"READING CHIP");
   setTimeout(()=>{
     lcdMsg("APPROVED ✓<br>MAKE SELECTION",2600);
-    S.cardSession=true; S.cardInserted=(mode==="chip"); S.busy=false;
-    sfx.ok(); renderHUD(); refreshVFD();
+    S.cardSession=true; S.cardInserted=(mode==="chip");setMode("transaction");
+    sfx.ok();refreshVFD();
     if(S.entry.length===3) maybeAutoVend();
     // a real reader times its session out
     clearTimeout(cardTimer);
@@ -1745,7 +1969,8 @@ function useCard(mode){
 }
 let cardTimer=null;
 function endCard(){
-  S.cardSession=false; S.cardInserted=false; clearTimeout(cardTimer); refreshVFD();
+  S.cardSession=false; S.cardInserted=false; clearTimeout(cardTimer);
+  if(!S.credit&&!S.trayItem)setMode("idle");refreshVFD();
 }
 
 /* ============================================================
@@ -1771,6 +1996,9 @@ function highlight(){
 /* 3 digits typed: show the price / prompt, but wait for OK (like the real thing) */
 function maybeAutoVend(justTyped){
   const it=ITEMS[S.entry];
+  if(!it&&SECRET_COMMANDS[S.entry]&&META.discovered.includes(S.entry)&&!S.credit&&!S.cardSession){
+    setVFD("CODE "+S.entry+"\nPRESS OK");return;
+  }
   if(!it){ if(justTyped) setVFD("INVALID\nSELECTION",1500,1), sfx.bad(); return; }
   if(it.stock<=0){ setVFD("SOLD OUT\nMAKE ANOTHER",1800,1); sfx.bad(); return; }
   const need=it.price-(S.cardSession?it.price:S.credit);
@@ -1782,6 +2010,9 @@ function doOK(){
   if(S.busy) return;
   if(S.trayItem){ setVFD("TAKE ITEM\nFROM TRAY",1500,1); return; }
   if(S.entry.length<3){ setVFD("ENTER 3 DIGIT\nCODE",1500,1); sfx.bad(); return; }
+  if(S.mode==="idle"&&!openPop&&!S.credit&&!S.cardSession&&SECRET_COMMANDS[S.entry]&&META.discovered.includes(S.entry)){
+    runSecretCommand(S.entry);return;
+  }
   const it=ITEMS[S.entry];
   if(!it){ setVFD("INVALID\nSELECTION",1600,1); sfx.bad(); S.entry=""; highlight(); return; }
   if(it.stock<=0){ setVFD("SOLD OUT",1600,1); sfx.bad(); return; }
@@ -1804,62 +2035,74 @@ function doOK(){
 /* ============================================================
    11. VENDING
    ============================================================ */
-function vend(it,change){
-  S.busy=true; renderHUD();
-  setVFD("VENDING…");
-  sfx.motor();
+async function vend(it,change){
+  setMode("vending");
+  setVFD("VENDING…");sfx.motor();
   const slot=slotEl(it.code);
   const holder=slot.querySelector(".itemholder");
   const coils=[...slot.querySelectorAll(".coil")];
+  const active={item:it,change,scope:new EffectScope(),skipPackageFall:false,afterRelease:null,
+    trayArt:it.trayArt||it.art};
+  S.activeVend=active;
+  const ctx=effectContext(active,slot,holder);
   // the coil turns and its thread marches forward, walking the product out
   coils.forEach(c=>c.classList.add("spin"));
   holder.style.transition="transform .9s cubic-bezier(.4,.1,.8,.6)";
   holder.classList.add("pushing");
-
-  setTimeout(()=>{
+  await delay(900);
+  try{
     coils.forEach(c=>c.classList.remove("spin"));
     holder.classList.remove("pushing"); holder.style.transition="";
+    const effect=EFFECTS[it.effectId]||EFFECTS.default;
+    if(effect.preFall){
+      try{await effect.preFall(ctx);}catch(err){console.error("Product effect failed:",it.effectId,err);active.skipPackageFall=false;}
+    }
     // the pack tips out of its coil and falls behind the glass; once it passes the
     // bottom of the display case the cabinet body hides it, and it lands in the bin
-    const clone=holder.cloneNode(true);
-    const r=holder.getBoundingClientRect(), gr=glassEl.getBoundingClientRect();
-    const w=r.width/scale, h=r.height/scale;
-    const drop=(gr.bottom-r.top)/scale + h*0.6;   // clears the glass, then is clipped
-    clone.style.cssText=`position:absolute;left:${(r.left-gr.left)/scale}px;
-      top:${(r.top-gr.top)/scale}px;width:${w}px;height:${h}px;
-      --dx:${(Math.random()*12-6).toFixed(1)}px;--dy:${drop.toFixed(1)}px;
-      --rot:${(Math.random()*46-23).toFixed(1)}deg;
-      animation:vendfall .8s cubic-bezier(.32,.02,.72,1) forwards`;
-    fx.appendChild(clone);
-    // the thud lands as it drops out of sight into the bin
-    setTimeout(()=>{ sfx.thud(); },680);
-
-    setTimeout(()=>{
-      clone.remove();
-      it.stock--;
-      if(it.stock<=0){
-        holder.remove(); slot.querySelectorAll(".coil").forEach(c=>c.style.opacity=".55");
-        const g=document.createElement("div"); g.className="soldout"; g.textContent="SOLD OUT";
-        slot.insertBefore(g,slot.firstChild);
-        tagEl(it.code).classList.add("out");
-      }
-      bayItem.innerHTML=it.art();
-      const pk=bayItem.firstElementChild;
-      const bw=Math.min(it.w*1.15,150);
-      pk.style.width=bw+"px"; pk.style.height=(bw*it.h/it.w)+"px";
-      pk.style.setProperty("--u",(bw/it.w)+"px");
-      pk.style.transform="rotate(-6deg)";
-      bayItem.classList.add("show");
-      S.trayItem=it.code;
-      doorEl.classList.add("ready"); doorLabel.textContent="PUSH TO TAKE ITEM";
-
-      if(change>0) dropChange(change);
-      S.entry=""; highlight();
-      S.bought++; S.busy=false; renderHUD();
-      setVFD(change>0?"CHANGE "+money(change)+"\nPUSH TRAY":"THANK YOU\nPUSH TRAY",2600);
-      setTimeout(refreshVFD,2700);
-    },820);
-  },900);
+    let clone=null;
+    if(!active.skipPackageFall){
+      clone=holder.cloneNode(true);
+      clone.classList.remove("fx-scared","fx-faint","fx-puff","pushing");
+      clone.querySelectorAll(".fx-fright,.fx-sweat").forEach(el=>el.remove());
+      const r=holder.getBoundingClientRect(), gr=glassEl.getBoundingClientRect();
+      const w=r.width/scale, h=r.height/scale;
+      const drop=(gr.bottom-r.top)/scale + h*0.6;
+      clone.style.cssText=`position:absolute;left:${(r.left-gr.left)/scale}px;
+        top:${(r.top-gr.top)/scale}px;width:${w}px;height:${h}px;
+        --dx:${(Math.random()*12-6).toFixed(1)}px;--dy:${drop.toFixed(1)}px;
+        --rot:${(Math.random()*46-23).toFixed(1)}deg;
+        animation:vendfall .8s cubic-bezier(.32,.02,.72,1) forwards`;
+      fx.appendChild(clone);
+      if(active.afterRelease)active.afterRelease();
+      setTimeout(()=>sfx.thud(),680);await delay(820);clone.remove();
+      if(active.postFallDelay)await delay(active.postFallDelay);
+    }else{
+      if(active.afterRelease)active.afterRelease();
+      setTimeout(()=>sfx.thud(),180);await delay(420);
+    }
+    active.scope.cleanup();
+    it.stock--;
+    if(it.stock<=0){
+      holder.remove(); slot.querySelectorAll(".coil").forEach(c=>c.style.opacity=".55");
+      const g=document.createElement("div"); g.className="soldout"; g.textContent="SOLD OUT";
+      slot.insertBefore(g,slot.firstChild);tagEl(it.code).classList.add("out");
+    }
+    bayItem.innerHTML=active.trayArt();
+    const pk=bayItem.firstElementChild;
+    const bw=Math.min(it.w*1.15,150);
+    pk.style.width=bw+"px"; pk.style.height=(bw*it.h/it.w)+"px";
+    pk.style.setProperty("--u",(bw/it.w)+"px");pk.style.transform="rotate(-6deg)";
+    bayItem.classList.add("show");S.trayItem=it.code;
+    doorEl.classList.add("ready");doorLabel.textContent="PUSH TO TAKE ITEM";
+    if(change>0)dropChange(change);
+    S.entry="";highlight();S.bought++;discoverClue(it);setMode("awaitingPickup");
+    setVFD(change>0?"CHANGE "+money(change)+"\nPUSH TRAY":"THANK YOU\nPUSH TRAY",2600);
+    setTimeout(refreshVFD,2700);
+  }catch(err){
+    console.error("Vend lifecycle failed",err);active.scope.cleanup();coils.forEach(c=>c.classList.remove("spin"));
+    holder.classList.remove("pushing","fx-scared","fx-faint","fx-puff");holder.style.transition="";
+    S.activeVend=null;S.entry="";highlight();setMode("idle");setVFD("VEND ERROR\nTRY AGAIN",1800,1);
+  }
 }
 
 /* ---- change ---- */
@@ -1892,6 +2135,7 @@ function coinReturn(){
   if(S.credit<=0){ collectChange(); if(!S.change.length) setVFD("NO CREDIT",1100); return; }
   const amt=S.credit; S.credit=0; S.entry=""; highlight();
   dropChange(amt);
+  setMode("idle");
   setVFD("RETURNED\n"+money(amt),1800);
   renderHUD();
 }
@@ -1922,12 +2166,13 @@ const revealText=revealBlurb.firstElementChild;
 /* re-arm a CSS animation so it plays again on the next retrieval */
 function restartAnim(el,anim){ el.style.animation="none"; void el.offsetWidth; el.style.animation=anim; }
 function retrieve(){
-  const it=ITEMS[S.trayItem]; if(!it) return;
+  const active=S.activeVend;
+  const it=active&&active.item||ITEMS[S.trayItem]; if(!it) return;
   S.trayItem=null;
   bayItem.classList.remove("show"); bayItem.innerHTML="";
   doorEl.classList.remove("ready"); doorLabel.textContent="PUSH";
   setTimeout(releaseDoor,420);
-  revealItem.innerHTML=it.art();
+  revealItem.innerHTML=active&&active.trayArt?active.trayArt():it.art();
   let rh=Math.min(innerHeight*.54,440), rw=rh*it.w/it.h;
   const maxW=Math.min(innerWidth*.72,360);
   if(rw>maxW){ rw=maxW; rh=rw*it.h/it.w; }
@@ -1937,6 +2182,7 @@ function retrieve(){
   rpk.style.setProperty("--u",(rw/it.w)+"px");
   revealText.textContent=it.name;
   reveal.classList.add("on");
+  setMode("revealing");
   restartAnim(revealItem,"comeforward 1.15s cubic-bezier(.16,.9,.24,1) both");
   restartAnim(revealBlurb,"fadein .6s .7s both");
   tone(880,.09,"sine",.05); setTimeout(()=>tone(1320,.16,"sine",.045),100);
@@ -1945,6 +2191,7 @@ function retrieve(){
 function closeReveal(){
   if(!reveal.classList.contains("on")) return;
   reveal.classList.remove("on"); revealItem.innerHTML="";
+  S.activeVend=null;setMode("idle");
   refreshVFD();
 }
 reveal.addEventListener("click",closeReveal);
