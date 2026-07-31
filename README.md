@@ -1,7 +1,7 @@
 # Vending Machine Simulator
 
-A photoreal snack vending machine you can actually operate — pay by card, bill or coin, punch a
-slot code, watch the coil turn, then push the tray door open and grab your snack.
+A janky looking snack vending machine you can actually operate! Pay by card, bill, or coin! Punch a
+slot code! Watch the coil turn! Push the tray door open and grab your snack.
 
 ![The simulator running on desktop](images/screenshot-machine.webp)
 
@@ -12,13 +12,16 @@ Open vending_machine_sim.html in any modern browser.
 ```
 
 That's it — double-click the file, or drag it into a browser window. It works from `file://` with
-no server. Sound effects (coin drop, keypad beeps, vend motor, thud) are synthesised with the Web
+no server. Sound effects (coin drop, keypad beeps, vend motor, thud) are synthesized with the Web
 Audio API and start after your first interaction, per browser autoplay policy.
 
 ## The original prompt
 
-The page was built using Claude Opus 5 using reference images from
-[UI/UX Critique Journal — Day 2](https://medium.com/%40danlimonchik/ui-ux-critique-journal-day-2-e0dbedded181). This is the same type of vending machine I saw in the wild and became inspired to describe it in detail when having to sit staring at it in a waiting room. The prompt I wrote on my phone was:
+The page was built with Claude Opus 5 and reference images from
+[UI/UX Critique Journal — Day 2](https://medium.com/%40danlimonchik/ui-ux-critique-journal-day-2-e0dbedded181).
+It is the same type of vending machine I encountered in the wild. After sitting and staring at
+one in a waiting room, I was inspired to describe it in detail. The prompt I wrote on my phone
+is reproduced below:
 
 > Create for me a vending machine simulator. The machine will have a large glass window with
 > snacks such as chips, candy bars, nuts, trail mix and beef jerky. Below the glass window is a
@@ -47,9 +50,14 @@ The page was built using Claude Opus 5 using reference images from
 > responsive design. Both mouse and touch interaction should be supported. make the snacks look
 > realistic. Make the resulting vending machine look as close to the reference images as possible.
 
-Claude wants you to think it got this built as a one shot, but that is all hubris. It originaly had these crooked coils in front of the snacks. Then the snack themselves were so boring I had to keep nudging it to do better. And they still look like shit! Without the reference images Claude was not able to create something that looked like a real vending machine.
+Claude wants you to think it built this in one shot, but that is all hubris. It originally had
+these crooked coils in front of the snacks. Then the snacks themselves were so boring that I had
+to keep nudging it to do better. And they still look like shit! Without the reference images,
+Claude was not able to create something that looked like a real vending machine.
+
 ## Playing it
 
-Figure it out, its a vending machine. Its not supposed to require a manual to operate. Put in money, punch some buttons. You are rewarded with crude animation and sound effects.
+Figure it out—it’s a vending machine. It’s not supposed to require a manual. Put in some money
+and punch some buttons. You are rewarded with crude animations and sound effects.
 
 ![The reveal overlay](images/screenshot-reveal.webp)
