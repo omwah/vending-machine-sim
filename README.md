@@ -5,15 +5,10 @@ slot code! Watch the coil turn! Push the tray door open and grab your snack.
 
 ![The simulator running on desktop](images/screenshot-machine.webp)
 
-## Run it
+## View It
 
-```
-Open index.html in any modern browser.
-```
-
-That's it — double-click the file, or drag it into a browser window. It works from `file://` with
-no server. Sound effects (coin drop, keypad beeps, vend motor, thud) are synthesized with the Web
-Audio API and start after your first interaction, per browser autoplay policy.
+Take the elevator to the basement and visit the vending machine [here](
+https://omwah.github.io/vending-machine-sim/).
 
 ## The original prompt
 
