@@ -126,7 +126,36 @@ const initial = await evaluate(`({
   scale
 })`);
 
-if (process.argv.includes("--slime-only")) {
+if (process.argv.includes("--responsive-only")) {
+  const geometry = () => evaluate(`(()=>{
+    const machine=document.querySelector("#machine").getBoundingClientRect();
+    const code=document.querySelector(".tag .code").getBoundingClientRect();
+    const price=document.querySelector(".tag .price").getBoundingClientRect();
+    return {
+      scale,
+      viewportHeight:innerHeight,
+      scrollHeight:document.documentElement.scrollHeight,
+      machineTop:machine.top,
+      machineBottom:machine.bottom,
+      labelCenterDelta:Math.abs((code.top+code.bottom)/2-(price.top+price.bottom)/2)
+    };
+  })()`);
+  // A tab first opened at 120% must still recover the true 100% baseline.
+  await evaluate(`baseDevicePixelRatio=1.2;localStorage.setItem(BASE_DPR_KEY,"1.2");fit()`);
+  const baseline = await geometry();
+  await send("Emulation.setDeviceMetricsOverride", {
+    width: 1164, height: 818, deviceScaleFactor: 1.1, mobile: false
+  });
+  await evaluate(`pageZoomFactor=()=>1.1;fit()`);
+  await delay(250);
+  const zoomed = await geometry();
+  const report = { initial, baseline, zoomed, errors };
+  console.log(JSON.stringify(report, null, 2));
+  socket.close();
+  if (errors.length || baseline.machineBottom > baseline.viewportHeight ||
+      zoomed.machineBottom <= zoomed.viewportHeight || zoomed.scrollHeight <= zoomed.viewportHeight ||
+      zoomed.labelCenterDelta > 0.5) process.exitCode = 1;
+} else if (process.argv.includes("--slime-only")) {
   const report = { initial, slimePainted: await testSlime(), errors };
   console.log(JSON.stringify(report, null, 2));
   socket.close();

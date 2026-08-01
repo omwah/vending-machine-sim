@@ -1155,11 +1155,37 @@ addEventListener("keydown",e=>{
    14. RESPONSIVE SCALING
    ============================================================ */
 const DW=760, DH=1210;
+const BASE_DPR_KEY="vending-machine-base-dpr-v1";
+const NATIVE_DPR_STEPS=[1,1.25,1.5,2,2.5,3,4];
+let baseDevicePixelRatio=window.devicePixelRatio||1;
+try{
+  const savedDpr=Number(localStorage.getItem(BASE_DPR_KEY));
+  if(savedDpr>0)baseDevicePixelRatio=savedDpr;
+  else localStorage.setItem(BASE_DPR_KEY,String(baseDevicePixelRatio));
+}catch(e){}
+function pageZoomFactor(){
+  const currentDpr=window.devicePixelRatio||1;
+  // A page first opened while zoomed may save that zoomed DPR. Correct the
+  // baseline when the browser later reaches a lower, plausible native DPR.
+  const nativeDpr=NATIVE_DPR_STEPS.find(step=>Math.abs(step-currentDpr)<.015);
+  if(nativeDpr&&currentDpr<baseDevicePixelRatio-.015){
+    baseDevicePixelRatio=currentDpr;
+    try{localStorage.setItem(BASE_DPR_KEY,String(baseDevicePixelRatio));}catch(e){}
+  }
+  return Math.max(.5,Math.min(5,currentDpr/baseDevicePixelRatio));
+}
 function fit(){
   const w=innerWidth, h=innerHeight;
   const narrow = w<820;
-  let s = narrow ? (w-14)/DW : Math.min((w-40)/DW,(h-24)/DH);
-  s=Math.max(.28,Math.min(s,1.35));
+  // Reconstruct the unzoomed viewport so 100% starts with the whole machine in
+  // view. Holding that baseline through later page-zoom steps lets the machine
+  // and its type grow immediately instead of continually shrinking to fit height.
+  const pageZoom=pageZoomFactor();
+  const layoutW=w*pageZoom,layoutH=h*pageZoom;
+  const baseGutter=layoutW<820?14:40;
+  const fullViewScale=Math.min((layoutW-baseGutter)/DW,(layoutH-24)/DH,1.35);
+  const widthFit=(w-(narrow?14:40))/DW;
+  const s=Math.max(.28,Math.min(fullViewScale,widthFit));
   scale=s;
   stage.style.transform=`scale(${s})`;
   const used=DH*s;
@@ -1167,9 +1193,12 @@ function fit(){
   const floorRise=Math.max(72,Math.min(120,used*.12));
   const seamY=Math.max(24,Math.min(h-24,pad+used-floorRise));
   $("#room").style.setProperty("--wall-floor-seam",(seamY/h*100).toFixed(2)+"%");
-  document.body.style.height = (used+pad+(narrow?18:16)+(glassBroken?82:0)) + "px";
+  // Transforms do not contribute their visual size to document layout, so
+  // reserve the complete scaled height explicitly to make the machine scroll.
+  const scrollHeight=used+pad*2+(glassBroken?82:0);
+  document.body.style.height = scrollHeight + "px";
   document.body.style.minHeight="100%";
-  $("#viewport").style.height = used + "px";
+  $("#viewport").style.height = (used+pad) + "px";
   $("#viewport").style.paddingTop = pad+"px";
 }
 addEventListener("resize",fit); addEventListener("orientationchange",()=>setTimeout(fit,120));
