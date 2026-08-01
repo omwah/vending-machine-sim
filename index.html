@@ -24,7 +24,7 @@ body{
 /* ---------- room ---------- */
 #room{
   --wall-floor-seam:86%;
-  position:fixed;inset:0;overflow:hidden;z-index:0;
+  position:fixed;inset:0;overflow:hidden;z-index:0;cursor:pointer;
   background:
     /* warm ceiling light pool */
     radial-gradient(120% 60% at 55% -10%, rgba(255,214,150,.22), rgba(0,0,0,0) 60%),
@@ -58,6 +58,173 @@ body{
     repeating-linear-gradient(4deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,0) 1px 120px),
     linear-gradient(180deg,#8a5a2e,#5e3a1c);
   box-shadow:inset 0 30px 50px rgba(0,0,0,.5);
+}
+#room:focus-visible{outline:3px solid rgba(255,218,106,.8);outline-offset:-7px}
+#floor::after{content:"";display:none;position:absolute;pointer-events:none}
+
+/* ---------- alternate room and floor combinations ---------- */
+.room-brick-art{display:none;pointer-events:none}
+#room.room-redbrick .room-brick-art{
+  display:block;position:absolute;left:0;right:0;top:0;width:100%;height:var(--wall-floor-seam);z-index:0
+}
+/* poured cinder blocks and old institutional tile */
+#room.room-cinder{
+  background:
+    radial-gradient(110% 54% at 52% -8%,rgba(242,248,237,.24),transparent 61%),
+    linear-gradient(#858b87 0 var(--wall-floor-seam),#454a48 var(--wall-floor-seam)
+      calc(var(--wall-floor-seam) + .45%),#9b9b91 calc(var(--wall-floor-seam) + .45%) 100%)
+}
+#room.room-cinder::before{
+  left:0;right:0;top:0;height:var(--wall-floor-seam);opacity:1;filter:none;
+  background:
+    radial-gradient(ellipse at 42% 61%,rgba(45,51,48,.22) 0 2%,transparent 7%) 0 0/181px 127px,
+    repeating-linear-gradient(117deg,rgba(255,255,255,.025) 0 1px,transparent 1px 13px),
+    repeating-linear-gradient(to bottom,#4b5150 0 2px,rgba(229,233,227,.3) 2px 4px,
+      transparent 4px 69px,rgba(37,42,41,.3) 69px 72px),
+    repeating-linear-gradient(90deg,#4b5150 0 2px,rgba(229,233,227,.28) 2px 4px,
+      transparent 4px 145px,rgba(37,42,41,.3) 145px 148px),
+    linear-gradient(105deg,#9ca19c,#777d79 52%,#909590);
+  background-size:181px 127px,auto,auto,auto,auto;
+  box-shadow:inset 0 -45px 65px rgba(0,0,0,.42),inset 0 0 35px rgba(30,35,33,.18)
+}
+#room.room-cinder::after{
+  left:0;right:0;top:0;height:var(--wall-floor-seam);opacity:1;filter:none;
+  background:
+    radial-gradient(ellipse at 42% 61%,rgba(45,51,48,.22) 0 2%,transparent 7%) 0 0/181px 127px,
+    repeating-linear-gradient(90deg,transparent 0 72px,#4b5150 72px 74px,
+      rgba(229,233,227,.28) 74px 76px,transparent 76px 145px,rgba(37,42,41,.3) 145px 148px),
+    linear-gradient(105deg,#9ca19c,#777d79 52%,#909590);
+  -webkit-mask:repeating-linear-gradient(to bottom,transparent 0 4px,#000 4px 72px,transparent 72px 144px);
+  mask:repeating-linear-gradient(to bottom,transparent 0 4px,#000 4px 72px,transparent 72px 144px)
+}
+#room.room-cinder #floor{
+  background:
+    radial-gradient(ellipse at 23% 58%,rgba(48,22,25,.36),transparent 16%),
+    radial-gradient(ellipse at 82% 32%,rgba(29,22,23,.28),transparent 19%),
+    radial-gradient(ellipse at 55% 76%,rgba(225,151,148,.1),transparent 13%),
+    repeating-linear-gradient(90deg,rgba(61,38,40,.72) 0 2px,transparent 2px 76px),
+    repeating-linear-gradient(0deg,rgba(61,38,40,.72) 0 2px,transparent 2px 76px),
+    linear-gradient(135deg,#934c55,#672932 58%,#512029);
+  box-shadow:inset 0 27px 42px rgba(0,0,0,.42)
+}
+
+/* sickly painted wall, damp mold blooms, and stained concrete */
+#slime-mold-wall,#slime-mold-floor{
+  display:block;position:absolute;left:0;right:0;top:0;width:100%;height:var(--wall-floor-seam);
+  z-index:1;pointer-events:none;opacity:0
+}
+#slime-mold-floor{inset:0;width:100%;height:100%}
+#room.room-mold #slime-mold-wall{opacity:.93}
+#room.room-mold #slime-mold-floor{opacity:.96}
+#room.room-mold{
+  background:
+    radial-gradient(100% 48% at 50% -8%,rgba(226,228,136,.16),transparent 65%),
+    linear-gradient(#697331 0 var(--wall-floor-seam),#30331d var(--wall-floor-seam)
+      calc(var(--wall-floor-seam) + .45%),#777974 calc(var(--wall-floor-seam) + .45%) 100%)
+}
+#room.room-mold::before{
+  left:0;right:0;top:0;height:var(--wall-floor-seam);opacity:1;filter:none;
+  background:
+    radial-gradient(ellipse at 14% 17%,rgba(226,230,142,.08),transparent 16%),
+    repeating-linear-gradient(91deg,rgba(255,255,210,.025) 0 1px,transparent 1px 13px),
+    linear-gradient(104deg,#78823b,#5e692e 58%,#707a35);
+  box-shadow:inset 0 -18px 28px rgba(20,22,11,.22)
+}
+#room.room-mold::after{
+  left:0;right:0;top:0;height:var(--wall-floor-seam);opacity:1;filter:none;background:none
+}
+#room.room-mold #floor{
+  background:
+    linear-gradient(112deg,transparent 0 17%,rgba(43,46,44,.32) 17.3% 17.7%,transparent 18%),
+    linear-gradient(74deg,transparent 0 68%,rgba(48,51,49,.25) 68.2% 68.5%,transparent 68.8%),
+    repeating-linear-gradient(103deg,rgba(255,255,255,.035) 0 1px,transparent 1px 31px),
+    linear-gradient(180deg,#858985,#5d615f);
+  box-shadow:inset 0 34px 58px rgba(0,0,0,.5)
+}
+#room.room-mold #floor::after{
+  display:none
+}
+
+/* weathered mixed brick with long, straight wooden floorboards */
+#room.room-redbrick{
+  background:
+    radial-gradient(120% 58% at 52% -10%,rgba(255,218,178,.18),transparent 62%),
+    linear-gradient(#754638 0 var(--wall-floor-seam),#34231e var(--wall-floor-seam)
+      calc(var(--wall-floor-seam) + .45%),#70421f calc(var(--wall-floor-seam) + .45%) 100%)
+}
+#room.room-redbrick::before{
+  left:0;right:0;top:0;height:var(--wall-floor-seam);z-index:1;opacity:1;filter:none;
+  background:
+    radial-gradient(ellipse at 22% 37%,rgba(238,222,197,.18) 0 3%,transparent 10%) 0 0/271px 193px,
+    radial-gradient(ellipse at 76% 68%,rgba(45,33,30,.2) 0 2%,transparent 9%) 0 0/223px 157px,
+    repeating-linear-gradient(113deg,rgba(255,239,215,.035) 0 1px,transparent 1px 17px);
+  box-shadow:inset 0 -50px 72px rgba(28,18,15,.48),inset 0 0 35px rgba(40,28,23,.18)
+}
+#room.room-redbrick::after{
+  left:0;right:0;top:0;height:var(--wall-floor-seam);z-index:1;opacity:.72;filter:none;
+  background:
+    radial-gradient(ellipse at 9% 29%,rgba(242,232,211,.2),transparent 8%),
+    radial-gradient(ellipse at 88% 61%,rgba(25,18,17,.2),transparent 12%),
+    linear-gradient(90deg,rgba(42,28,23,.12),transparent 22%,transparent 73%,rgba(42,28,23,.16));
+  -webkit-mask:none;mask:none
+}
+#room.room-redbrick #floor{
+  background:
+    repeating-linear-gradient(90deg,rgba(42,22,10,.66) 0 3px,transparent 3px 112px),
+    repeating-linear-gradient(0deg,rgba(255,219,157,.08) 0 1px,transparent 1px 34px),
+    repeating-linear-gradient(92deg,transparent 0 24px,rgba(38,20,9,.12) 25px 26px),
+    linear-gradient(180deg,#9b6430,#5c3418);
+  box-shadow:inset 0 32px 52px rgba(0,0,0,.48)
+}
+
+/* dark cabin logs, sun-bleached plank floor, and a worn red rug */
+#room.room-cabin{
+  background:
+    radial-gradient(115% 58% at 52% -8%,rgba(218,167,106,.13),transparent 64%),
+    linear-gradient(#3f2818 0 var(--wall-floor-seam),#1d110b var(--wall-floor-seam)
+      calc(var(--wall-floor-seam) + .45%),#8b7556 calc(var(--wall-floor-seam) + .45%) 100%)
+}
+#room.room-cabin::before{
+  left:0;right:0;top:0;height:var(--wall-floor-seam);opacity:1;filter:none;
+  background:
+    linear-gradient(90deg,rgba(17,8,5,.2),transparent 24%,rgba(226,163,101,.06) 52%,
+      transparent 74%,rgba(15,7,4,.22)),
+    repeating-linear-gradient(2deg,transparent 0 7px,rgba(28,13,8,.22) 8px,
+      transparent 9px 19px),
+    repeating-linear-gradient(178deg,transparent 0 13px,rgba(229,166,108,.07) 14px,
+      transparent 15px 29px),
+    repeating-linear-gradient(to bottom,rgba(236,160,94,.04) 0 56px,rgba(22,10,6,.13) 56px 112px,
+      rgba(209,132,77,.035) 112px 168px,rgba(12,6,4,.15) 168px 224px),
+    repeating-linear-gradient(to bottom,#100705 0 3px,#24120c 4px 8px,#4c2b1c 12px 17px,
+      #70462e 22px,#895d40 28px,#774d33 34px,#583522 41px,#382016 47px,
+      #22110b 52px,#0d0604 56px);
+  box-shadow:inset 0 -54px 76px rgba(15,8,5,.68),inset 0 0 45px rgba(10,5,3,.3)
+}
+#room.room-cabin::after{
+  left:0;right:0;top:0;height:var(--wall-floor-seam);opacity:.84;filter:none;
+  background:
+    radial-gradient(ellipse at 50% 50%,rgba(220,159,105,.13) 0 7%,transparent 25%) 0 0/317px 112px,
+    radial-gradient(ellipse at 50% 50%,rgba(15,7,4,.28) 0 3%,transparent 14%) 73px 21px/229px 167px,
+    repeating-linear-gradient(1deg,transparent 0 10px,rgba(18,8,5,.18) 11px,
+      transparent 12px 24px)
+}
+#room.room-cabin #floor{
+  background:
+    repeating-linear-gradient(90deg,rgba(67,52,35,.52) 0 3px,transparent 3px 128px),
+    repeating-linear-gradient(0deg,rgba(255,246,213,.07) 0 1px,transparent 1px 29px),
+    repeating-linear-gradient(93deg,transparent 0 32px,rgba(64,48,31,.11) 33px 34px),
+    linear-gradient(180deg,#a18b69,#756046);
+  box-shadow:inset 0 31px 48px rgba(32,25,18,.42)
+}
+#room.room-cabin #floor::after{
+  display:block;left:2.5%;right:2.5%;top:5%;bottom:-24%;clip-path:none;
+  background:
+    linear-gradient(90deg,rgba(245,203,143,.55) 0 1.2%,transparent 1.2% 98.8%,rgba(245,203,143,.55) 98.8%),
+    repeating-linear-gradient(45deg,transparent 0 18px,rgba(238,185,120,.18) 18px 22px),
+    repeating-linear-gradient(-45deg,transparent 0 18px,rgba(238,185,120,.14) 18px 22px),
+    linear-gradient(180deg,#8d2924,#5f1b19);
+  border:3px solid rgba(111,50,35,.82);border-radius:1px;
+  box-shadow:0 5px 13px rgba(0,0,0,.42),inset 0 0 0 2px rgba(225,163,101,.18);opacity:.94
 }
 /* ---------- stage / scaling ---------- */
 #viewport{position:relative;z-index:3;width:100%;display:flex;justify-content:center}
@@ -1387,7 +1554,81 @@ body{
 </head>
 <body>
 
-<div id="room"><div id="floor"></div></div>
+<svg width="0" height="0" aria-hidden="true" focusable="false"
+     style="position:absolute;overflow:hidden;pointer-events:none">
+  <defs>
+  </defs>
+</svg>
+
+<div id="room" class="room-original" role="button" tabindex="0"
+     aria-label="Change room background" title="Click to change the room">
+  <svg class="room-brick-art" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <filter id="brickRough" x="-4%" y="-8%" width="108%" height="116%">
+        <feTurbulence type="fractalNoise" baseFrequency=".035 .12" numOctaves="2" seed="19" result="grain"/>
+        <feColorMatrix in="grain" type="matrix"
+          values=".42 0 0 0 .36  0 .42 0 0 .31  0 0 .42 0 .27  0 0 0 .28 0" result="grainTone"/>
+        <feBlend in="SourceGraphic" in2="grainTone" mode="multiply"/>
+      </filter>
+      <pattern id="agedBrickPattern" width="640" height="216" patternUnits="userSpaceOnUse">
+        <rect width="640" height="216" fill="#aab3ac"/>
+        <g filter="url(#brickRough)" stroke="#513831" stroke-opacity=".42" stroke-width="1">
+          <rect x="-20" y="3" width="108" height="28" rx="3" fill="#a95038"/>
+          <rect x="95" y="2" width="92" height="30" rx="2" fill="#7c4940"/>
+          <rect x="194" y="4" width="132" height="26" rx="4" fill="#c66f47" transform="rotate(-.45 260 17)"/>
+          <rect x="333" y="2" width="78" height="30" rx="2" fill="#9b573e"/>
+          <rect x="418" y="3" width="116" height="27" rx="3" fill="#64555b"/>
+          <rect x="541" y="2" width="104" height="30" rx="3" fill="#aa593d"/>
+
+          <rect x="-54" y="39" width="130" height="28" rx="3" fill="#8b4938"/>
+          <rect x="83" y="40" width="116" height="26" rx="2" fill="#c16841" transform="rotate(.5 141 53)"/>
+          <rect x="206" y="38" width="78" height="30" rx="4" fill="#a76c4b"/>
+          <rect x="291" y="40" width="143" height="26" rx="3" fill="#88443a"/>
+          <rect x="441" y="38" width="91" height="30" rx="2" fill="#c4774c"/>
+          <rect x="539" y="39" width="132" height="28" rx="4" fill="#765052"/>
+
+          <rect x="-14" y="75" width="85" height="27" rx="2" fill="#bf6d47"/>
+          <rect x="78" y="73" width="142" height="30" rx="4" fill="#915342" transform="rotate(-.4 149 88)"/>
+          <rect x="227" y="76" width="106" height="25" rx="2" fill="#ba6442"/>
+          <rect x="340" y="74" width="73" height="29" rx="3" fill="#6a5558"/>
+          <rect x="420" y="75" width="154" height="27" rx="4" fill="#a9573e"/>
+          <rect x="581" y="73" width="75" height="30" rx="2" fill="#c57b50"/>
+
+          <rect x="-62" y="111" width="122" height="28" rx="3" fill="#75473e"/>
+          <rect x="67" y="110" width="81" height="30" rx="2" fill="#c36c44"/>
+          <rect x="155" y="113" width="128" height="25" rx="4" fill="#9b5a42" transform="rotate(.55 219 126)"/>
+          <rect x="290" y="111" width="103" height="28" rx="2" fill="#b86240"/>
+          <rect x="400" y="109" width="137" height="31" rx="4" fill="#825050"/>
+          <rect x="544" y="112" width="104" height="26" rx="3" fill="#c3784c"/>
+
+          <rect x="-25" y="147" width="137" height="27" rx="4" fill="#a75a3f"/>
+          <rect x="119" y="145" width="75" height="30" rx="2" fill="#67565b"/>
+          <rect x="201" y="148" width="111" height="26" rx="3" fill="#c56c43"/>
+          <rect x="319" y="146" width="149" height="29" rx="4" fill="#8b4a3a" transform="rotate(-.35 393 160)"/>
+          <rect x="475" y="147" width="83" height="27" rx="2" fill="#bd744d"/>
+          <rect x="565" y="145" width="110" height="30" rx="3" fill="#765046"/>
+
+          <rect x="-68" y="183" width="116" height="28" rx="3" fill="#b96240"/>
+          <rect x="55" y="181" width="145" height="31" rx="4" fill="#8a5040"/>
+          <rect x="207" y="184" width="92" height="26" rx="2" fill="#c37b52" transform="rotate(.45 253 197)"/>
+          <rect x="306" y="182" width="124" height="29" rx="3" fill="#9d533b"/>
+          <rect x="437" y="184" width="72" height="27" rx="2" fill="#66565c"/>
+          <rect x="516" y="181" width="139" height="31" rx="4" fill="#b96b46"/>
+        </g>
+        <g fill="none" stroke="#f2dfc8" stroke-linecap="round" opacity=".31">
+          <path d="M8 16h42m173 70h54m77 41h27m88 70h48M107 55h31m181 107h63m183-109h48"/>
+          <path d="M19 22h18m185 71h31m108 40h15m102 69h23m101-141h25" stroke-width="2"/>
+        </g>
+        <g fill="none" stroke="#492d28" stroke-linecap="round" opacity=".3">
+          <path d="M119 25h46m146 33h84m67 35h76M77 128h54m211 68h62m129-29h41"/>
+        </g>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#agedBrickPattern)"/>
+  </svg>
+  <canvas id="slime-mold-wall" aria-hidden="true"></canvas>
+  <div id="floor"><canvas id="slime-mold-floor" aria-hidden="true"></canvas></div>
+</div>
 
 <div id="viewport">
 <div id="stage">
@@ -1611,7 +1852,8 @@ body{
     <span class="kbd">coin slot</span> to pay. Punch the item code on the keypad and press
     <span class="kbd">OK</span>. Then <span class="kbd">push the tray door</span> to grab your snack.
     <br>Keyboard: digits, <span class="kbd">Enter</span>=OK, <span class="kbd">Esc</span>=coin return,
-    <span class="kbd">W</span>=wallet, <span class="kbd">C</span>=collection.
+    <span class="kbd">W</span>=wallet, <span class="kbd">C</span>=collection,
+    <span class="kbd">B</span>=room.
   </div>
   <div class="den"><button class="card" id="hudhide">Hide Panel</button></div>
 </div>
@@ -1987,8 +2229,198 @@ const coinTray=$("#cointray"), lcd=$("#lcd"), lcdStatus=$("#lcdstatus");
 const machineEl=$("#machine"), fxRear=$("#fxrear"), fxFront=$("#fxfront");
 const stickerZoom=$("#stickerzoom"), stickerZoomCard=$("#stickerzoomcard");
 const collectionEl=$("#collection"),collectionPanel=$("#collectionpanel"),collectionGrid=$("#collectiongrid");
+const roomEl=$("#room");
 let collectionSuppressed=false;
 let scale=1;
+
+const ROOM_THEME_KEY="vending-machine-room-theme-v1";
+const ROOM_THEMES=[
+  ["room-original","Original basement"],
+  ["room-cinder","Cinder block wall and tile floor"],
+  ["room-mold","Moldy green wall and stained grey floor"],
+  ["room-redbrick","Red brick wall and wood plank floor"],
+  ["room-cabin","Dark log cabin with a red rug"]
+];
+let roomThemeIndex=0;
+function setRoomTheme(index,persist=true){
+  roomThemeIndex=(index+ROOM_THEMES.length)%ROOM_THEMES.length;
+  roomEl.classList.remove(...ROOM_THEMES.map(theme=>theme[0]));
+  const [className,name]=ROOM_THEMES[roomThemeIndex];roomEl.classList.add(className);
+  roomEl.dataset.roomTheme=name;roomEl.setAttribute("aria-label","Change room background. Current: "+name);
+  roomEl.title=name+" — click to change the room";
+  if(persist)try{localStorage.setItem(ROOM_THEME_KEY,String(roomThemeIndex));}catch(e){}
+}
+function cycleRoomTheme(){setRoomTheme(roomThemeIndex+1);}
+try{
+  const savedRoomTheme=Number(localStorage.getItem(ROOM_THEME_KEY));
+  if(Number.isInteger(savedRoomTheme)&&savedRoomTheme>=0&&savedRoomTheme<ROOM_THEMES.length)
+    roomThemeIndex=savedRoomTheme;
+}catch(e){}
+setRoomTheme(roomThemeIndex,false);
+roomEl.addEventListener("click",cycleRoomTheme);
+roomEl.addEventListener("keydown",e=>{
+  if(e.key!=="Enter"&&e.key!==" ")return;
+  e.preventDefault();e.stopPropagation();cycleRoomTheme();
+});
+
+/* Agent/trail slime-mold renderer adapted from procedural-slime-mold-wall-demo.html. */
+function initSlimeMoldSurface(selector,{floorSurface=false,seed=0x51a7e31d,palette}){
+  const canvas=$(selector);
+  const ctx=canvas.getContext("2d");
+  const simCanvas=document.createElement("canvas");
+  const simCtx=simCanvas.getContext("2d");
+  const TAU=Math.PI*2;
+  const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+  let W=260,H=210,N=0,trail,nextTrail,activity,moisture,cracks,wallNoise,imageData;
+  let agents=[],steps=0,raf=0,resizeTimer=0,rngState=seed,lastTick=0;
+  const random=()=>{
+    rngState^=rngState<<13;rngState^=rngState>>>17;rngState^=rngState<<5;
+    return (rngState>>>0)/4294967296;
+  };
+  const idx=(x,y)=>((y+H)%H)*W+((x+W)%W);
+  function hash2(x,y,seed=0){
+    let n=Math.imul(x,374761393)^Math.imul(y,668265263)^Math.imul(seed,1442695041);
+    n=Math.imul(n^(n>>>13),1274126177);
+    return ((n^(n>>>16))>>>0)/4294967295;
+  }
+  function smoothNoise(x,y,scale,seed=0){
+    const gx=x/scale,gy=y/scale,x0=Math.floor(gx),y0=Math.floor(gy);
+    const tx=gx-x0,ty=gy-y0,sx=tx*tx*(3-2*tx),sy=ty*ty*(3-2*ty);
+    const a=hash2(x0,y0,seed),b=hash2(x0+1,y0,seed);
+    const c=hash2(x0,y0+1,seed),d=hash2(x0+1,y0+1,seed);
+    return (a*(1-sx)+b*sx)*(1-sy)+(c*(1-sx)+d*sx)*sy;
+  }
+  function fractalNoise(x,y,seed=0){
+    let value=0,amp=.55,scale=72,total=0;
+    for(let octave=0;octave<4;octave++){
+      value+=smoothNoise(x,y,scale,seed+octave*19)*amp;total+=amp;amp*=.5;scale*=.48;
+    }
+    return value/total;
+  }
+  function generateWall(){
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const i=y*W+x,n=fractalNoise(x,y,31),fine=smoothNoise(x,y,4.5,99);
+      const bottomDamp=Math.pow(y/H,floorSurface?1.35:2.35);
+      const patches=smoothNoise(x,y,62,402)*.55+smoothNoise(x,y,29,721)*.45;
+      const nx=x/W;
+      const cabinetDamp=Math.exp(-Math.pow((nx-.12)/.095,2))*.34+
+        Math.exp(-Math.pow((nx-.88)/.085,2))*.28+
+        (floorSurface?Math.exp(-Math.pow((nx-.54)/.24,2))*.18:0);
+      wallNoise[i]=n*.8+fine*.2;
+      moisture[i]=clamp(.08+bottomDamp*.48+Math.max(0,patches-.5)*1.05+cabinetDamp*(.28+bottomDamp*.72));
+    }
+    for(let c=0;c<15;c++){
+      let x=(.07+random()*.86)*W,y=(.38+random()*.58)*H,angle=random()*TAU;
+      const length=18+random()*70;
+      for(let s=0;s<length;s++){
+        const xi=Math.floor(x),yi=Math.floor(y);
+        for(let oy=-2;oy<=2;oy++)for(let ox=-2;ox<=2;ox++){
+          const distance=Math.hypot(ox,oy),p=idx(xi+ox,yi+oy);
+          cracks[p]=Math.max(cracks[p],Math.max(0,1-distance/2.4));
+          moisture[p]=clamp(moisture[p]+Math.max(0,.22-distance*.065));
+        }
+        angle+=(random()-.5)*.38;
+        if(random()<.04)angle+=(random()-.5)*1.45;
+        x+=Math.cos(angle)*1.1;y+=Math.sin(angle)*1.1;
+        if(x<1||x>W-2||y<1||y>H-2)break;
+      }
+    }
+  }
+  function addColony(cx,cy,count){
+    const radius=Math.min(W,H)*(.018+random()*.017);
+    for(let i=0;i<count;i++){
+      const angle=random()*TAU,radiusAtPoint=Math.sqrt(random())*radius;
+      const x=clamp(cx+Math.cos(angle)*radiusAtPoint,1,W-2);
+      const y=clamp(cy+Math.sin(angle)*radiusAtPoint,1,H-2);
+      agents.push({x,y,a:random()*TAU,age:random()*500});
+      const p=idx(Math.floor(x),Math.floor(y));
+      trail[p]=Math.min(8,trail[p]+1.5);activity[p]=Math.min(4,activity[p]+1);
+    }
+  }
+  function initialize(){
+    const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);
+    canvas.width=Math.max(1,Math.floor(rect.width*dpr));canvas.height=Math.max(1,Math.floor(rect.height*dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    H=floorSurface?64:140;
+    W=Math.max(220,Math.min(320,Math.round(H*rect.width/Math.max(1,rect.height))));N=W*H;
+    simCanvas.width=W;simCanvas.height=H;imageData=simCtx.createImageData(W,H);
+    trail=new Float32Array(N);nextTrail=new Float32Array(N);activity=new Float32Array(N);
+    moisture=new Float32Array(N);cracks=new Float32Array(N);wallNoise=new Float32Array(N);
+    agents=[];steps=0;lastTick=0;rngState=seed;generateWall();
+    if(floorSurface){
+      addColony(W*.105,H*.32,420);addColony(W*.905,H*.57,310);addColony(W*.54,H*.86,210);
+    }else{
+      addColony(W*.105,H*.72,820);addColony(W*.895,H*.63,680);addColony(W*.52,H*.91,360);
+    }
+    for(let i=0;i<N;i++){trail[i]*=.25;activity[i]*=.45;}
+  }
+  function sense(agent,offsetAngle){
+    const angle=agent.a+offsetAngle;
+    const x=Math.floor(agent.x+Math.cos(angle)*5.8),y=Math.floor(agent.y+Math.sin(angle)*5.8),p=idx(x,y);
+    return trail[p]*.88+moisture[p]*2.15+cracks[p]*1.35+(wallNoise[p]-.5)*.18;
+  }
+  function simulateAgents(){
+    const sensorAngle=31*Math.PI/180;
+    for(let n=0;n<agents.length;n++){
+      const agent=agents[n],forward=sense(agent,0),left=sense(agent,-sensorAngle),right=sense(agent,sensorAngle);
+      if(forward<left&&forward<right)agent.a+=(random()<.5?-1:1)*.28;
+      else if(left>right)agent.a-=.28;else if(right>left)agent.a+=.28;
+      agent.a+=(random()-.5)*.095+Math.sin(agent.age*.009)*.0025;
+      agent.x+=Math.cos(agent.a)*.92;agent.y+=Math.sin(agent.a)*.92+.012;
+      if(agent.x<1||agent.x>=W-1||agent.y<1||agent.y>=H-1){
+        agent.x=clamp(agent.x,1,W-2);agent.y=clamp(agent.y,1,H-2);agent.a+=Math.PI*(.75+random()*.5);
+      }
+      const p=idx(Math.floor(agent.x),Math.floor(agent.y)),dampBoost=.65+moisture[p]*.8;
+      trail[p]=Math.min(10,trail[p]+.72*dampBoost);activity[p]=Math.min(5,activity[p]+.82);agent.age++;
+    }
+  }
+  function diffuseField(){
+    for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
+      const i=y*W+x,cardinal=trail[i-1]+trail[i+1]+trail[i-W]+trail[i+W];
+      const diagonal=trail[i-W-1]+trail[i-W+1]+trail[i+W-1]+trail[i+W+1];
+      nextTrail[i]=(trail[i]*.52+cardinal*.095+diagonal*.025)*.99;activity[i]*=.955;
+    }
+    [trail,nextTrail]=[nextTrail,trail];
+  }
+  function render(){
+    const pixels=imageData.data;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const i=y*W+x,p=i*4,t=trail[i],active=activity[i];
+      const near=trail[idx(x-2,y)]+trail[idx(x+2,y)]+trail[idx(x,y-2)]+trail[idx(x,y+2)];
+      const halo=clamp(near*.05-t*.075),body=clamp((t-.045)*.5),thick=clamp((t-.78)*.3),front=clamp(active*.68);
+      if(body<=0&&halo<=.015){pixels[p]=pixels[p+1]=pixels[p+2]=pixels[p+3]=0;continue;}
+      const cell=Math.sin(x*.42+Math.sin(y*.19))*Math.sin(y*.38+Math.cos(x*.17));
+      const pore=cell*.5+.5;
+      const ridge=clamp((Math.abs(trail[idx(x+1,y)]-trail[idx(x-1,y)])+
+        Math.abs(trail[idx(x,y+1)]-trail[idx(x,y-1)]))*.1+thick*.18);
+      let r=palette.base[0]+thick*palette.thick[0]+front*palette.front[0]+pore*palette.pore[0]+ridge*palette.ridge[0];
+      let g=palette.base[1]+thick*palette.thick[1]+front*palette.front[1]+pore*palette.pore[1]+ridge*palette.ridge[1];
+      let b=palette.base[2]+thick*palette.thick[2]+front*palette.front[2]+pore*palette.pore[2]+ridge*palette.ridge[2];
+      pixels[p]=clamp(r,0,255);pixels[p+1]=clamp(g,0,255);pixels[p+2]=clamp(b,0,255);
+      pixels[p+3]=Math.round(255*clamp(halo*.22+body*(.72+thick*.2)));
+    }
+    simCtx.putImageData(imageData,0,0);ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);
+    ctx.imageSmoothingEnabled=true;ctx.drawImage(simCanvas,0,0,W,H,0,0,canvas.clientWidth,canvas.clientHeight);
+  }
+  function step(timestamp){
+    if(roomEl.classList.contains("room-mold")&&steps<170&&timestamp-lastTick>=50){
+      simulateAgents();diffuseField();steps++;lastTick=timestamp;
+      render();
+    }
+    raf=requestAnimationFrame(step);
+  }
+  addEventListener("resize",()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(initialize,140);},{passive:true});
+  initialize();step();
+  return()=>{cancelAnimationFrame(raf);clearTimeout(resizeTimer);};
+}
+initSlimeMoldSurface("#slime-mold-wall",{
+  seed:0x51a7e31d,
+  palette:{base:[153,116,18],thick:[38,34,8],front:[18,16,3],pore:[13,11,2],ridge:[30,25,7]}
+});
+initSlimeMoldSurface("#slime-mold-floor",{
+  floorSurface:true,seed:0x73c42a19,
+  palette:{base:[14,73,8],thick:[17,54,9],front:[10,29,4],pore:[8,20,2],ridge:[16,37,5]}
+});
 
 function setMode(mode){
   S.mode=mode;S.busy=!["idle","transaction","awaitingPickup"].includes(mode);renderHUD();
@@ -3311,6 +3743,7 @@ addEventListener("keydown",e=>{
   if(reveal.classList.contains("on")){ closeReveal(); return; }
   if(plain&&shortcut==="w"){e.preventDefault();toggleWallet(false);return;}
   if(plain&&shortcut==="c"){e.preventDefault();openCollection();return;}
+  if(plain&&shortcut==="b"){e.preventDefault();cycleRoomTheme();return;}
   if(/^[0-9]$/.test(e.key)){
     const k=[...keys].find(x=>x.dataset.k===e.key); if(k){press(k);keyIn(e.key);}
   }else if(e.key==="Enter"){e.preventDefault();press(okKey);lightPressedControl(okKey);sfx.ok();doOK();}
