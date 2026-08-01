@@ -56,3 +56,18 @@ Figure it out—it’s a vending machine. It’s not supposed to require a manua
 and punch some buttons. You are rewarded with crude animations and sound effects.
 
 ![The reveal overlay](images/screenshot-reveal.webp)
+
+## Browser test harness
+
+The dependency-free browser harness exercises the game through Chrome's DevTools Protocol. It
+requires Node.js 22+ and a Chrome instance listening on port 9223:
+
+```sh
+google-chrome --headless=new --remote-debugging-port=9223 --user-data-dir=/tmp/vending-machine-test about:blank
+node tests/browser-test.js file:///absolute/path/to/vending-machine-sim/index.html
+```
+
+To test HTTP loading, serve the repository with any static server and pass its `index.html` URL
+instead. Set `CHROME_DEBUG_PORT` if Chrome is listening on a different port. The full run takes a
+couple of minutes because it waits for the game's real effect timings; pass `--slime-only` for a
+short pointer-interaction smoke test.
