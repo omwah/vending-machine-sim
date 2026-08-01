@@ -1082,17 +1082,22 @@ body{
 #hud .den button.card{background:linear-gradient(180deg,#cfe0ff,#8fa8e0);color:#0f1a33;width:100%}
 #hud .hint{margin-top:8px;color:#9a9284;font-size:9.5px;line-height:1.45}
 #hud .kbd{color:#f0c96b}
-#hudtoggle,#collectiontoggle{
+#hudtoggle,#collectiontoggle,#achievementtoggle{
   position:fixed;left:10px;top:10px;z-index:41;display:none;border:none;cursor:pointer;
   width:46px;height:42px;border-radius:10px;padding:5px;color:#1c1a16;
   background:linear-gradient(180deg,#f4ecd4,#cfc4a2);box-shadow:0 4px 12px rgba(0,0,0,.5)}
 #collectiontoggle{left:66px;display:block;background:linear-gradient(180deg,#f2d79d,#bf8542)}
-#hudtoggle svg,#collectiontoggle svg{display:block;width:100%;height:100%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.32))}
-#hudtoggle:focus-visible,#collectiontoggle:focus-visible{outline:3px solid #ffd75e;outline-offset:2px}
+#achievementtoggle{left:122px;display:block;padding:4px;background:linear-gradient(180deg,#f7e6a3,#b98320)}
+#hudtoggle svg,#collectiontoggle svg,#achievementtoggle svg{display:block;width:100%;height:100%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.32))}
+#hudtoggle:focus-visible,#collectiontoggle:focus-visible,#achievementtoggle:focus-visible{outline:3px solid #ffd75e;outline-offset:2px}
+#achievementbadge{position:absolute;right:-5px;top:-6px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;
+  display:grid;place-items:center;color:#fff;background:#9e241c;border:1px solid #f4d482;
+  font:800 8px/1 Arial;box-shadow:0 2px 5px rgba(0,0,0,.55)}
 @media (max-width:860px){
   #hud{left:8px;top:8px;right:8px;width:auto;max-width:none}
-  #hudtoggle{left:auto;right:66px;bottom:10px;top:auto;padding:11px 14px}
-  #collectiontoggle{left:auto;right:10px;bottom:10px;top:auto;padding:9px 12px}
+  #hudtoggle{left:auto;right:122px;bottom:10px;top:auto;padding:11px 14px}
+  #collectiontoggle{left:auto;right:66px;bottom:10px;top:auto;padding:9px 12px}
+  #achievementtoggle{left:auto;right:10px;bottom:10px;top:auto}
 }
 #hud.hidden{display:none}
 #hud.hidden + #hudtoggle{display:block}
@@ -1208,6 +1213,50 @@ body{
 #collectiongrid:empty + #collectionempty{display:block}
 @media(max-width:520px){#collection{padding:10px}#collectionpanel{padding:14px 10px}
   #collectiongrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+
+/* unlocked achievements; cards stay compact so the panel reads as a trophy list */
+#achievements{position:fixed;inset:0;z-index:89;display:none;place-items:center;padding:12px;
+  background:rgba(0,0,0,.78);backdrop-filter:blur(5px)}
+#achievements.on{display:grid;animation:fadein .2s ease-out both}
+#achievementpanel{width:min(820px,94vw);height:min(760px,90vh);overflow:auto;border-radius:14px;padding:20px;
+  color:#eee;background:linear-gradient(180deg,#2d261b,#14110d);
+  box-shadow:0 24px 70px rgba(0,0,0,.78),inset 0 0 0 1px rgba(255,218,116,.2)}
+#achievementhead{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+#achievementtitlewrap h2{font:800 15px/1 Arial;letter-spacing:2px;color:#f4cb52}
+#achievementcount{display:block;margin-top:6px;color:#c8bda8;font:800 9px/1 Arial;letter-spacing:1px}
+#achievementclose{border:0;border-radius:7px;padding:7px 10px;cursor:pointer;background:#d6cbae;color:#241a12;
+  font:800 11px/1 Arial}
+#achievementlist{display:grid;gap:9px}
+.achievement-card{min-height:78px;display:grid;grid-template-columns:62px minmax(0,1fr) auto;align-items:center;
+  gap:12px;border-radius:10px;padding:9px 12px;background:linear-gradient(100deg,rgba(244,203,82,.14),rgba(255,255,255,.035));
+  box-shadow:inset 0 0 0 1px rgba(244,203,82,.22),0 4px 10px rgba(0,0,0,.24)}
+.achievement-icon{width:58px;height:58px;display:grid;place-items:center;overflow:hidden;border-radius:9px;
+  background:radial-gradient(circle at 40% 30%,#51452e,#18140d 72%);box-shadow:inset 0 0 0 1px rgba(255,220,110,.2)}
+.achievement-icon svg{display:block;width:52px;height:52px}
+.achievement-icon .pk{position:relative!important;margin:auto!important;transform:none!important;filter:drop-shadow(0 3px 3px rgba(0,0,0,.6))}
+.achievement-copy h3{font:800 12px/1.15 Arial;color:#fff;letter-spacing:.35px}
+.achievement-copy p{margin-top:5px;color:#bdb3a4;font:600 9.5px/1.35 Arial}
+.achievement-date{white-space:nowrap;color:#d3b95f;font:800 8px/1 Arial;letter-spacing:.6px;text-align:right}
+#achievementempty{display:none;padding:54px 10px;text-align:center;color:#a99f91;font:700 11px/1.5 Arial}
+#achievementlist:empty + #achievementempty{display:block}
+#achievementtoasts{position:fixed;z-index:120;right:12px;top:12px;width:min(350px,calc(100vw - 24px));
+  display:grid;gap:8px;pointer-events:none}
+.achievement-toast{min-height:66px;display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:10px;
+  padding:8px 12px 8px 8px;border-radius:11px;color:#fff;
+  background:linear-gradient(105deg,rgba(31,25,15,.98),rgba(73,51,13,.97));
+  box-shadow:0 10px 30px rgba(0,0,0,.62),inset 0 0 0 1px rgba(255,216,89,.52);
+  animation:achievementtoast 3.35s ease-in-out both}
+.achievement-toast .achievement-icon{width:48px;height:48px;border-radius:8px}
+.achievement-toast .achievement-icon svg{width:43px;height:43px}
+.achievement-toast b{display:block;color:#f5cc4f;font:900 8px/1 Arial;letter-spacing:1.3px;margin-bottom:5px}
+.achievement-toast strong{display:block;font:800 11px/1.2 Arial;color:#fff}
+@keyframes achievementtoast{
+  0%{opacity:0;transform:translateX(calc(100% + 20px))}
+  10%,79%{opacity:1;transform:translateX(0)}
+  100%{opacity:0;transform:translateX(calc(100% + 20px))}
+}
+@media(max-width:520px){#achievementpanel{padding:14px 10px}.achievement-card{grid-template-columns:54px minmax(0,1fr);gap:9px}
+  .achievement-icon{width:52px;height:52px}.achievement-date{grid-column:2;text-align:left;margin-top:-5px}}
 
 /* falling-item layer: inside the glass, so the cabinet body clips the item away
    as it drops out of the display case and into the bin. Sits under #gloss so the
@@ -1852,7 +1901,7 @@ body{
     <span class="kbd">coin slot</span> to pay. Punch the item code on the keypad and press
     <span class="kbd">OK</span>. Then <span class="kbd">push the tray door</span> to grab your snack.
     <br>Keyboard: digits, <span class="kbd">Enter</span>=OK, <span class="kbd">Esc</span>=coin return,
-    <span class="kbd">W</span>=wallet, <span class="kbd">C</span>=collection,
+    <span class="kbd">W</span>=wallet, <span class="kbd">C</span>=collection, <span class="kbd">A</span>=achievements,
     <span class="kbd">B</span>=room.
   </div>
   <div class="den"><button class="card" id="hudhide">Hide Panel</button></div>
@@ -1902,6 +1951,19 @@ body{
     <path d="M28 26.5c1.5-2 3.7-1.4 4.5-.7-1.4 1.4-2.9 2.1-4.5 2z" fill="#5f8235" stroke="#365522" stroke-width=".55"/>
   </svg>
 </button>
+<button id="achievementtoggle" aria-label="Open achievements" title="Open achievements">
+  <svg viewBox="0 0 52 44" aria-hidden="true">
+    <defs><linearGradient id="trophyGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff180"/><stop offset=".42" stop-color="#f4c536"/><stop offset="1" stop-color="#9c6410"/>
+    </linearGradient></defs>
+    <path d="M14 7h24v8c0 10-5 16-12 16s-12-6-12-16z" fill="url(#trophyGold)" stroke="#5e3909" stroke-width="2"/>
+    <path d="M14 11H7v5c0 7 4 11 10 11M38 11h7v5c0 7-4 11-10 11" fill="none" stroke="#d89d20" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M26 29v6M19 36h14v4H19z" fill="#d89d20" stroke="#5e3909" stroke-width="2"/>
+    <path d="M15 39h22v4H15z" fill="#121212" stroke="#000" stroke-width="2"/>
+    <path d="m26 11 2.1 4.3 4.8.7-3.5 3.4.9 4.8-4.3-2.3-4.3 2.3.9-4.8-3.5-3.4 4.8-.7z" fill="#fff2a4" stroke="#8b570b" stroke-width="1"/>
+  </svg>
+  <span id="achievementbadge" aria-hidden="true">0</span>
+</button>
 
 <!-- retrieved item overlay -->
 <div id="reveal" role="dialog" aria-modal="true">
@@ -1921,6 +1983,19 @@ body{
     <div id="collectionempty">Purchase a snack to add it here.</div>
   </div>
 </div>
+
+<div id="achievements" role="dialog" aria-modal="true" aria-labelledby="achievementtitle" tabindex="-1">
+  <div id="achievementpanel">
+    <div id="achievementhead">
+      <div id="achievementtitlewrap"><h2 id="achievementtitle">ACHIEVEMENTS</h2>
+        <span id="achievementcount">0 / 0 UNLOCKED</span></div>
+      <button id="achievementclose" type="button">CLOSE</button>
+    </div>
+    <div id="achievementlist"></div>
+    <div id="achievementempty">No achievements unlocked yet.</div>
+  </div>
+</div>
+<div id="achievementtoasts" aria-live="polite" aria-atomic="false"></div>
 
 <script>
 "use strict";
@@ -2126,16 +2201,34 @@ const SHELVES = [
 const ITEMS = {};
 SHELVES.forEach((row,ri)=>row.forEach(it=>{ITEMS[it.code]={...it,id:it.id||"slot-"+it.code,shelf:ri,stock:3};}));
 
+/* Secret animations live in one registry. Adding a definition here creates a
+   persistent random code and, through the achievement catalog, a code award. */
+const SECRET_COMMAND_DEFS={
+  "300":{title:"BACHELOR CHOW",texts:["NOW WITH FLAVOR!","MAKES ITS OWN GRAVY!"],event:"rocket",duration:4800},
+  "202":{title:"NUTRITION RECORD",text:"THE LAST CUSTOMER NEVER LEFT",event:"glass",duration:6000},
+  "969":{title:"INCIDENT REPORT",text:"THE FOOTSTEPS NUMBER FIVE",event:"ghost",duration:3100},
+  "100":{title:"BY THE FIRE AT\nCAMP WAUCONDA",text:"IT BORROWED THE CHOSEN SHAPE",event:"shudder",duration:6000},
+  "000":{title:"FOLLOW CARE\nINSTRUCTIONS",text:"IT WAS NEVER FED. IT STILL GREW.",event:"rear",duration:4700},
+  "808":{titles:["Water? Like out\nof the toilet?","If you don't smoke\nTarryltons... Fuck You!","I like money."],
+    text:"I GOT A SOLUTION!",event:"camacho",duration:5400}
+};
 const SECRET_CODE_KEY="vending-machine-secret-codes-v1";
-const SECRET_IDS=[...new Set(Object.values(ITEMS).map(it=>it.clueId).filter(Boolean))];
+const SECRET_IDS=[...new Set([
+  ...Object.values(ITEMS).map(it=>it.clueId).filter(Boolean),
+  ...Object.keys(SECRET_COMMAND_DEFS)
+])];
 function secretCodeMappingIsValid(mapping){
   if(!mapping||typeof mapping!=="object")return false;
   const codes=SECRET_IDS.map(id=>mapping[id]);
   return codes.every(code=>/^\d{3}$/.test(code)&&!ITEMS[code])&&new Set(codes).size===codes.length;
 }
-function generateSecretCodeMapping(){
+function generateSecretCodeMapping(saved={}){
   const unavailable=new Set(Object.keys(ITEMS)),mapping={};
   SECRET_IDS.forEach(id=>{
+    const previous=saved[id];
+    if(/^\d{3}$/.test(previous)&&!unavailable.has(previous)){
+      mapping[id]=previous;unavailable.add(previous);return;
+    }
     let code;
     do{
       if(globalThis.crypto?.getRandomValues){const value=new Uint16Array(1);crypto.getRandomValues(value);code=String(value[0]%1000).padStart(3,"0");}
@@ -2146,11 +2239,13 @@ function generateSecretCodeMapping(){
   return mapping;
 }
 function loadSecretCodeMapping(){
+  let saved={};
   try{
     const raw=JSON.parse(localStorage.getItem(SECRET_CODE_KEY)||"null");
     if(raw?.version===1&&secretCodeMappingIsValid(raw.codes))return Object.fromEntries(SECRET_IDS.map(id=>[id,raw.codes[id]]));
+    if(raw?.version===1&&raw.codes&&typeof raw.codes==="object")saved=raw.codes;
   }catch(e){}
-  const codes=generateSecretCodeMapping();
+  const codes=generateSecretCodeMapping(saved);
   try{localStorage.setItem(SECRET_CODE_KEY,JSON.stringify({version:1,codes}));}catch(e){}
   return codes;
 }
@@ -2169,6 +2264,7 @@ function saveCollection(){try{localStorage.setItem(COLLECTION_KEY,JSON.stringify
 function collectSnack(it){
   const saved=COLLECTION.items[it.id]||{code:it.code,count:0};
   saved.code=it.code;saved.count++;COLLECTION.items[it.id]=saved;saveCollection();
+  if(isSpecialItem(it))unlockAchievement("item:"+it.id);
   if(document.getElementById("collection")?.classList.contains("on"))renderCollection();
 }
 function chooseCollectionItem(){
@@ -2219,6 +2315,73 @@ const META=loadMeta();
 function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify(META));}catch(e){}}
 
 /* ============================================================
+   ACHIEVEMENTS — item and secret-code entries are data-driven
+   ============================================================ */
+const ACHIEVEMENT_KEY="vending-machine-achievements-v1";
+const EVENT_ACHIEVEMENT_DEFS=[
+  {id:"event:glass-break",title:"Smash and Grab",description:"Break the display glass and set every snack free.",icon:"glass"},
+  {id:"event:machine-launch",title:"Vending Into Orbit",description:"Launch the entire vending machine off the screen.",icon:"launch"},
+  {id:"event:keypad-vortex",title:"Out of Order, Out of Space",description:"Twirl the vending machine into nothingness.",icon:"vortex"}
+];
+function isSpecialItem(it){return !!(it&&(it.effectId||it.clueId));}
+function loadAchievements(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(ACHIEVEMENT_KEY)||"null");
+    if(raw?.version===1&&raw.unlocked&&typeof raw.unlocked==="object")return {
+      version:1,unlocked:{...raw.unlocked},rooms:Array.isArray(raw.rooms)?[...new Set(raw.rooms)]:[]
+    };
+  }catch(e){}
+  return {version:1,unlocked:{},rooms:[]};
+}
+const ACHIEVEMENTS=loadAchievements();
+function saveAchievements(){try{localStorage.setItem(ACHIEVEMENT_KEY,JSON.stringify(ACHIEVEMENTS));}catch(e){}}
+function achievementCatalog(){
+  const itemAwards=Object.values(ITEMS).filter(isSpecialItem).map(it=>({
+    id:"item:"+it.id,type:"item",item:it,title:it.name,
+    description:"Purchase this special snack and add it to your collection."
+  }));
+  const codeAwards=Object.entries(SECRET_COMMAND_DEFS).map(([id,command])=>{
+    const item=Object.values(ITEMS).find(candidate=>candidate.clueId===id);
+    return {id:"code:"+id,type:"code",code:SECRET_CODES[id],commandId:id,
+      title:(item?item.name:(command.title||command.titles?.[0]||"Secret" ).replace(/\n/g," "))+" Code",
+      description:"Activate hidden code "+SECRET_CODES[id]+" and witness its secret animation."};
+  });
+  return [...itemAwards,...codeAwards,...EVENT_ACHIEVEMENT_DEFS,
+    {id:"event:all-rooms",type:"event",title:"Interior Decorator",
+      description:"Visit every vending-machine background.",icon:"rooms"}];
+}
+function unlockedAchievementCount(){
+  const possible=new Set(achievementCatalog().map(item=>item.id));
+  return Object.keys(ACHIEVEMENTS.unlocked).filter(id=>possible.has(id)).length;
+}
+function updateAchievementSummary(){
+  const total=achievementCatalog().length,unlocked=unlockedAchievementCount();
+  const badge=document.getElementById("achievementbadge");if(badge)badge.textContent=unlocked;
+  const count=document.getElementById("achievementcount");if(count)count.textContent=`${unlocked} / ${total} UNLOCKED`;
+}
+function unlockAchievement(id,timestamp=Date.now(),{silent=false}={}){
+  if(ACHIEVEMENTS.unlocked[id])return false;
+  ACHIEVEMENTS.unlocked[id]=timestamp;saveAchievements();updateAchievementSummary();
+  if(document.getElementById("achievements")?.classList.contains("on"))renderAchievements();
+  if(!silent)showAchievementToast(id);
+  return true;
+}
+function visitRoomTheme(className){
+  if(!ACHIEVEMENTS.rooms.includes(className)){
+    ACHIEVEMENTS.rooms.push(className);saveAchievements();
+  }
+  if(typeof ROOM_THEMES!=="undefined"&&ROOM_THEMES.every(([roomClass])=>ACHIEVEMENTS.rooms.includes(roomClass)))
+    unlockAchievement("event:all-rooms");
+}
+function syncHistoricAchievements(){
+  Object.entries(COLLECTION.items).forEach(([id,saved])=>{
+    const it=ITEMS[saved.code]||Object.values(ITEMS).find(item=>item.id===id);
+    if(saved.count>0&&isSpecialItem(it))unlockAchievement("item:"+it.id,Date.now(),{silent:true});
+  });
+  META.solved.forEach(id=>{if(SECRET_COMMAND_DEFS[id])unlockAchievement("code:"+id,Date.now(),{silent:true});});
+}
+
+/* ============================================================
    3. DOM
    ============================================================ */
 const $ = s => document.querySelector(s);
@@ -2229,6 +2392,7 @@ const coinTray=$("#cointray"), lcd=$("#lcd"), lcdStatus=$("#lcdstatus");
 const machineEl=$("#machine"), fxRear=$("#fxrear"), fxFront=$("#fxfront");
 const stickerZoom=$("#stickerzoom"), stickerZoomCard=$("#stickerzoomcard");
 const collectionEl=$("#collection"),collectionPanel=$("#collectionpanel"),collectionGrid=$("#collectiongrid");
+const achievementsEl=$("#achievements"),achievementPanel=$("#achievementpanel"),achievementList=$("#achievementlist");
 const roomEl=$("#room");
 let collectionSuppressed=false;
 let scale=1;
@@ -2248,6 +2412,7 @@ function setRoomTheme(index,persist=true){
   const [className,name]=ROOM_THEMES[roomThemeIndex];roomEl.classList.add(className);
   roomEl.dataset.roomTheme=name;roomEl.setAttribute("aria-label","Change room background. Current: "+name);
   roomEl.title=name+" — click to change the room";
+  visitRoomTheme(className);
   if(persist)try{localStorage.setItem(ROOM_THEME_KEY,String(roomThemeIndex));}catch(e){}
 }
 function cycleRoomTheme(){setRoomTheme(roomThemeIndex+1);}
@@ -2701,6 +2866,7 @@ function sendSnacksFleeing(){
 function breakDisplayGlass(origin){
   if(glassBroken)return;
   glassBroken=true;glassStrikePoints=[];S.entry="";S.trayItem=null;S.activeVend=null;
+  unlockAchievement("event:glass-break");
   S.cardSession=false;S.cardInserted=false;clearTimeout(cardTimer);
   bayItem.classList.remove("show");bayItem.innerHTML="";highlight();setMode("broken");
   glassEl.classList.add("fx-broken");const crack=brokenGlassArt(origin);glassEl.appendChild(crack);
@@ -2906,15 +3072,6 @@ const CAMACHO_FLAG_PRELOAD=CAMACHO_FLAG_FRAMES.map(src=>{
   const image=new Image();image.src=src;if(image.decode)image.decode().catch(()=>{});return image;
 });
 
-const SECRET_COMMAND_DEFS={
-  "300":{title:"BACHELOR CHOW",texts:["NOW WITH FLAVOR!","MAKES ITS OWN GRAVY!"],event:"rocket",duration:4800},
-  "202":{title:"NUTRITION RECORD",text:"THE LAST CUSTOMER NEVER LEFT",event:"glass",duration:6000},
-  "969":{title:"INCIDENT REPORT",text:"THE FOOTSTEPS NUMBER FIVE",event:"ghost",duration:3100},
-  "100":{title:"BY THE FIRE AT\nCAMP WAUCONDA",text:"IT BORROWED THE CHOSEN SHAPE",event:"shudder",duration:6000},
-  "000":{title:"FOLLOW CARE\nINSTRUCTIONS",text:"IT WAS NEVER FED. IT STILL GREW.",event:"rear",duration:4700},
-  "808":{titles:["Water? Like out\nof the toilet?","If you don't smoke\nTarryltons... Fuck You!","I like money."],
-    text:"I GOT A SOLUTION!",event:"camacho",duration:5400}
-};
 const SECRET_COMMANDS=Object.fromEntries(Object.entries(SECRET_COMMAND_DEFS).map(([id,command])=>
   [SECRET_CODES[id],{...command,id}]));
 const discoveredSecretCommand=code=>{
@@ -2922,6 +3079,7 @@ const discoveredSecretCommand=code=>{
 };
 async function runSecretCommand(code){
   const cmd=discoveredSecretCommand(code);if(!cmd)return false;
+  unlockAchievement("code:"+cmd.id);
   S.entry="";highlight();setMode("secretEvent");const scope=new EffectScope();
   try{
     collectionSuppressed=true;collectionEl.classList.remove("on");
@@ -3166,6 +3324,7 @@ function recordStandaloneLaunchInput(token){
 async function launchStandaloneMachine(){
   if(standaloneLaunched)return;
   standaloneLaunched=true;standaloneLaunchProgress=0;rapidClearPresses=[];
+  unlockAchievement("event:machine-launch");
   closePop();S.entry="";highlight();setMode("launching");darkenCascade();
   setVFD("LAUNCH SEQUENCE\nARMED");
   const reverseCascade=[...cascade].reverse();
@@ -3289,6 +3448,73 @@ $("#collectiontoggle").onclick=openCollection;
 $("#collectionclose").onclick=closeCollection;
 collectionPanel.addEventListener("click",e=>e.stopPropagation());
 collectionEl.addEventListener("click",closeCollection);
+
+function achievementIconSvg(achievement){
+  if(achievement.type==="code"){
+    const hue=hash(achievement.id)%360;
+    return `<svg viewBox="0 0 64 64" aria-hidden="true">
+      <rect x="7" y="6" width="50" height="52" rx="8" fill="hsl(${hue} 36% 25%)" stroke="#e9c453" stroke-width="2"/>
+      <rect x="12" y="12" width="40" height="15" rx="3" fill="#101410" stroke="#73866a"/>
+      <text x="32" y="23" text-anchor="middle" fill="#9dff87" font-size="11" font-weight="900" font-family="monospace">${achievement.code}</text>
+      <g fill="#d7c99e" stroke="#6b5d35">${[0,1,2,3,4,5].map(i=>`<circle cx="${20+(i%3)*12}" cy="${36+Math.floor(i/3)*12}" r="4"/>`).join("")}</g>
+      <path d="m49 42 1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6z" fill="#ffd85a"/>
+    </svg>`;
+  }
+  const icons={
+    glass:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 7h44v50H10z" fill="#9bd8ec" fill-opacity=".3" stroke="#dff7ff" stroke-width="3"/><circle cx="34" cy="30" r="4" fill="#fff"/><path d="m34 30-17-13m17 13 18-11M34 30l-18 8m18-8 16 13M34 30l-6 24m6-24 4-15M17 17l8 5-2 9m29-12-10 7 4 8M16 38l10-1 4 8m20-2-10-5-3 9" fill="none" stroke="#eafcff" stroke-width="2"/></svg>`,
+    launch:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M33 5c11 8 16 20 13 34l-13 8-13-8C17 25 22 13 33 5Z" fill="#ddd9cb" stroke="#342d24" stroke-width="2"/><circle cx="33" cy="24" r="7" fill="#64d9e9" stroke="#173a42" stroke-width="2"/><path d="m20 34-9 11 12-2m23-9 9 11-12-2" fill="#c33b32" stroke="#4d1612" stroke-width="2"/><path d="m27 46 6 14 6-14-6 5z" fill="#ffca30" stroke="#e84718" stroke-width="2"/></svg>`,
+    vortex:`<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="achievementVortex" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#69d7ff"/><stop offset=".5" stop-color="#9f59ed"/><stop offset="1" stop-color="#ffcc4b"/></linearGradient></defs><path d="M9 17c12-14 40-11 44 7 4 17-18 31-34 21C4 36 16 17 31 20c13 3 10 19 0 20-9 1-14-9-8-15" fill="none" stroke="url(#achievementVortex)" stroke-width="6" stroke-linecap="round"/><circle cx="29" cy="30" r="4" fill="#090909"/></svg>`,
+    rooms:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M7 13h50v39H7z" fill="#d8c49a" stroke="#221b14" stroke-width="3"/><path d="M7 36h50v16H7z" fill="#74452b"/><path d="M32 13v39M7 36h50" stroke="#221b14" stroke-width="2"/><path d="M12 18h14v13H12z" fill="#7c9fbd"/><path d="M38 18h14v13H38z" fill="#8caa5c"/><path d="M12 40h14v8H12z" fill="#8d2e2b"/><path d="M38 40h14v8H38z" fill="#c58a3a"/></svg>`
+  };
+  return icons[achievement.icon]||icons.rooms;
+}
+function fillAchievementIcon(icon,achievement,maxWidth=46,maxHeight=54){
+  if(achievement.type==="item"){
+    icon.innerHTML=achievement.item.art();const pk=icon.firstElementChild;
+    const artScale=Math.min(maxWidth/achievement.item.w,maxHeight/achievement.item.h);
+    pk.style.width=achievement.item.w*artScale+"px";pk.style.height=achievement.item.h*artScale+"px";
+    pk.style.setProperty("--u",artScale+"px");
+  }else icon.innerHTML=achievementIconSvg(achievement);
+}
+function showAchievementToast(id){
+  const achievement=achievementCatalog().find(item=>item.id===id),host=$("#achievementtoasts");
+  if(!achievement||!host)return;
+  const toast=document.createElement("div");toast.className="achievement-toast";toast.setAttribute("role","status");
+  const icon=document.createElement("div");icon.className="achievement-icon";fillAchievementIcon(icon,achievement,38,44);
+  const copy=document.createElement("div"),label=document.createElement("b"),title=document.createElement("strong");
+  label.textContent="ACHIEVEMENT EARNED";title.textContent=achievement.title;copy.append(label,title);toast.append(icon,copy);
+  host.appendChild(toast);
+  const remove=()=>toast.remove();toast.addEventListener("animationend",remove,{once:true});setTimeout(remove,3500);
+}
+function renderAchievements(){
+  updateAchievementSummary();achievementList.innerHTML="";
+  achievementCatalog().filter(item=>ACHIEVEMENTS.unlocked[item.id])
+    .sort((a,b)=>Number(ACHIEVEMENTS.unlocked[b.id])-Number(ACHIEVEMENTS.unlocked[a.id])).forEach(achievement=>{
+      const card=document.createElement("article");card.className="achievement-card";
+      const icon=document.createElement("div");icon.className="achievement-icon";
+      fillAchievementIcon(icon,achievement);
+      const copy=document.createElement("div");copy.className="achievement-copy";
+      const title=document.createElement("h3");title.textContent=achievement.title;
+      const description=document.createElement("p");description.textContent=achievement.description;copy.append(title,description);
+      const unlockedAt=Number(ACHIEVEMENTS.unlocked[achievement.id]);
+      const date=document.createElement("time");date.className="achievement-date";
+      date.dateTime=new Date(unlockedAt).toISOString();
+      date.textContent="UNLOCKED "+new Date(unlockedAt).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}).toUpperCase();
+      card.append(icon,copy,date);achievementList.appendChild(card);
+    });
+}
+function openAchievements(){
+  closePop();closeCollection(false);renderAchievements();achievementsEl.classList.add("on");achievementsEl.focus();
+}
+function closeAchievements(returnFocus=true){
+  if(!achievementsEl.classList.contains("on"))return;
+  achievementsEl.classList.remove("on");
+  if(returnFocus)$("#achievementtoggle").focus();else document.activeElement?.blur();
+}
+$("#achievementtoggle").onclick=openAchievements;
+$("#achievementclose").onclick=closeAchievements;
+achievementPanel.addEventListener("click",e=>e.stopPropagation());
+achievementsEl.addEventListener("click",closeAchievements);
 
 /* ============================================================
    8. MONEY IN
@@ -3430,6 +3656,7 @@ function recordRapidClearPress(){
   rapidClearPresses.push(now);
   if(rapidClearPresses.length<RAPID_CLEAR_COUNT) return false;
   rapidClearPresses=[]; machineVanished=true;
+  unlockAchievement("event:keypad-vortex");
   S.busy=true; S.mode="vanished"; S.entry=""; highlight();
   machineEl.classList.add("fx-keypad-vanish");
   const finishVanishing=()=>machineEl.classList.add("fx-keypad-gone");
@@ -3578,7 +3805,9 @@ async function vend(it,change){
     bayItem.classList.add("show");S.trayItem=it.code;
     doorEl.classList.add("ready");
     if(change>0)dropChange(change);
-    S.entry="";highlight();S.bought++;discoverClue(it);setMode("awaitingPickup");
+    S.entry="";highlight();S.bought++;discoverClue(it);
+    if(isSpecialItem(it))unlockAchievement("item:"+it.id);
+    setMode("awaitingPickup");
     setVFD(change>0?"CHANGE "+money(change)+"\nPUSH TRAY":"THANK YOU\nPUSH TRAY",2600);
     setTimeout(refreshVFD,2700);
   }catch(err){
@@ -3735,14 +3964,19 @@ stickerZoom.addEventListener("click",closeSticker);
 addEventListener("keydown",e=>{
   if(e.defaultPrevented)return;
   const shortcut=e.key.toLowerCase(),plain=!e.ctrlKey&&!e.metaKey&&!e.altKey;
-  if((e.key==="Enter"||e.key===" ")&&(e.target===$("#hudtoggle")||e.target===$("#collectiontoggle")))return;
+  if((e.key==="Enter"||e.key===" ")&&(e.target===$("#hudtoggle")||e.target===$("#collectiontoggle")||e.target===$("#achievementtoggle")))return;
   if(stickerZoom.classList.contains("on")){e.preventDefault();closeSticker();return;}
+  if(achievementsEl.classList.contains("on")){
+    if(e.key==="Escape"||(plain&&shortcut==="a")){e.preventDefault();closeAchievements(false);}return;
+  }
   if(collectionEl.classList.contains("on")){
+    if(plain&&shortcut==="a"){e.preventDefault();openAchievements();return;}
     if(e.key==="Escape"||(plain&&shortcut==="c")){e.preventDefault();closeCollection(false);}return;
   }
   if(reveal.classList.contains("on")){ closeReveal(); return; }
   if(plain&&shortcut==="w"){e.preventDefault();toggleWallet(false);return;}
   if(plain&&shortcut==="c"){e.preventDefault();openCollection();return;}
+  if(plain&&shortcut==="a"){e.preventDefault();openAchievements();return;}
   if(plain&&shortcut==="b"){e.preventDefault();cycleRoomTheme();return;}
   if(/^[0-9]$/.test(e.key)){
     const k=[...keys].find(x=>x.dataset.k===e.key); if(k){press(k);keyIn(e.key);}
@@ -3778,6 +4012,7 @@ function fit(){
   $("#viewport").style.paddingTop = pad+"px";
 }
 addEventListener("resize",fit); addEventListener("orientationchange",()=>setTimeout(fit,120));
+syncHistoricAchievements();updateAchievementSummary();
 fit(); renderHUD();
 
 /* prime audio on first gesture */
