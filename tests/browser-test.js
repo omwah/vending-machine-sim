@@ -126,7 +126,42 @@ const initial = await evaluate(`({
   scale
 })`);
 
-if (process.argv.includes("--responsive-only")) {
+if (process.argv.includes("--change-overflow-only")) {
+  const startingGeometry = await evaluate(`(()=>{
+    const machine=document.querySelector("#machine").getBoundingClientRect();
+    const tray=document.querySelector("#cointray").getBoundingClientRect();
+    S.cash={100:0,500:0,25:0,10:0,5:0,1:0};S.change=[];
+    coinTray.innerHTML="";coinTray.classList.remove("has");renderHUD();
+    dropChange(1000);
+    return {machineWidth:machine.width,trayWidth:tray.width};
+  })()`);
+  await delay(2450);
+  const duringOverflow = await evaluate(`({
+    spills:document.querySelectorAll(".fx-change-spill").length,
+    machineWidth:document.querySelector("#machine").getBoundingClientRect().width,
+    trayWidth:coinTray.getBoundingClientRect().width
+  })`);
+  await delay(1300);
+  const settled = await evaluate(`({
+    trayCoins:coinTray.childElementCount,
+    trayChange:S.change.length,
+    trayValue:S.change.reduce((sum,den)=>sum+den,0),
+    walletValue:cashTotal(),
+    spills:document.querySelectorAll(".fx-change-spill").length,
+    machineWidth:document.querySelector("#machine").getBoundingClientRect().width,
+    trayWidth:coinTray.getBoundingClientRect().width,
+    trayClientWidth:coinTray.clientWidth,
+    trayScrollWidth:coinTray.scrollWidth
+  })`);
+  const report = { initial, startingGeometry, duringOverflow, settled, errors };
+  console.log(JSON.stringify(report, null, 2));
+  socket.close();
+  if (errors.length || duringOverflow.spills < 1 || settled.spills !== 0 ||
+      settled.trayCoins !== settled.trayChange || settled.trayValue + settled.walletValue !== 1000 ||
+      settled.trayScrollWidth > settled.trayClientWidth ||
+      Math.abs(startingGeometry.machineWidth-settled.machineWidth) > 0.5 ||
+      Math.abs(startingGeometry.trayWidth-settled.trayWidth) > 0.5) process.exitCode = 1;
+} else if (process.argv.includes("--responsive-only")) {
   const geometry = () => evaluate(`(()=>{
     const machine=document.querySelector("#machine").getBoundingClientRect();
     const code=document.querySelector(".tag .code").getBoundingClientRect();
