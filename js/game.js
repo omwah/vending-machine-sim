@@ -999,19 +999,78 @@ function coinFace(den){
   };
   return faces[den]||faces[25];
 }
+function makeChangeCoin(den){
+  const coin=document.createElement("div");
+  coin.className="coin c"+String(den).padStart(2,"0");
+  coin.dataset.den=den;
+  coin.innerHTML=coinFace(den);coin.setAttribute("role","img");
+  coin.setAttribute("aria-label",den===100?"One dollar coin":`${den} cent coin`);
+  return coin;
+}
+function trayWouldOverflow(incoming){
+  const coins=[...coinTray.children].filter(coin=>coin!==incoming);
+  const style=getComputedStyle(coinTray);
+  const gap=parseFloat(style.columnGap)||0;
+  const padding=(parseFloat(style.paddingLeft)||0)+(parseFloat(style.paddingRight)||0);
+  const occupied=coins.reduce((total,coin)=>total+coin.offsetWidth,0)+gap*Math.max(0,coins.length-1);
+  return occupied+(coins.length?gap:0)+incoming.offsetWidth>coinTray.clientWidth-padding+.5;
+}
+function spillTrayCoin(coin){
+  if(!coin.isConnected||coin.parentElement!==coinTray)return;
+  const coins=[...coinTray.children],changeIndex=coins.indexOf(coin);
+  if(changeIndex<0)return;
+  const den=Number(coin.dataset.den)||S.change[changeIndex];
+  const rect=coin.getBoundingClientRect(),stageRect=stage.getBoundingClientRect();
+  const spill=coin.cloneNode(true);
+  spill.classList.add("fx-change-spill");
+  spill.setAttribute("aria-hidden","true");spill.removeAttribute("role");
+  spill.style.left=((rect.left-stageRect.left)/scale)+"px";
+  spill.style.top=((rect.top-stageRect.top)/scale)+"px";
+  spill.style.width=(rect.width/scale)+"px";
+  spill.style.height=(rect.height/scale)+"px";
+  spill.style.setProperty("--spill-x",(-54-Math.random()*30).toFixed(1)+"px");
+  spill.style.setProperty("--spill-y",Math.max(90,DH-(rect.top-stageRect.top)/scale-rect.height/scale+26).toFixed(1)+"px");
+  spill.style.setProperty("--spill-rot",(-115-Math.random()*95).toFixed(1)+"deg");
+  fxFront.appendChild(spill);
+  coin.remove();S.change.splice(changeIndex,1);
+  if(!S.change.length)coinTray.classList.remove("has");
+  let returned=false;
+  const returnToWallet=()=>{
+    if(returned)return;returned=true;
+    S.cash[den]=(S.cash[den]||0)+1;
+    spill.remove();renderHUD();sfx.coin();
+  };
+  spill.addEventListener("animationend",returnToWallet,{once:true});
+  setTimeout(returnToWallet,1200);
+}
+function addChangeCoin(den){
+  const existing=[...coinTray.children];
+  const before=existing.map(item=>item.getBoundingClientRect().left);
+  const coin=makeChangeCoin(den);
+  // Measure while attached but before it participates in the visible row.
+  coin.style.position="absolute";coin.style.visibility="hidden";
+  coinTray.appendChild(coin);
+  const overflow=trayWouldOverflow(coin);
+  coin.removeAttribute("style");
+  S.change.push(den);coinTray.classList.add("has");
+  // Animate the actual coins from their previous positions so the new coin
+  // visibly shoves the chain instead of an unrelated floor coin appearing.
+  requestAnimationFrame(()=>existing.forEach((item,index)=>{
+    if(!item.isConnected)return;
+    const shift=(before[index]-item.getBoundingClientRect().left)/scale;
+    item.animate([{transform:`translateX(${shift}px)`},{transform:"translateX(0)"}],{
+      duration:matchMedia("(prefers-reduced-motion: reduce)").matches?1:190,
+      easing:"cubic-bezier(.2,.75,.35,1)"
+    });
+  }));
+  if(overflow&&existing.length)setTimeout(()=>spillTrayCoin(existing[0]),170);
+  sfx.coin();
+}
 function dropChange(amount){
   const dens=[100,25,10,5,1]; const out=[];
   let left=amount;
   for(const d of dens){ while(left>=d){ out.push(d); left-=d; } }
-  out.forEach((d,i)=>setTimeout(()=>{
-    S.change.push(d);
-    const c=document.createElement("div");
-    c.className="coin c"+String(d).padStart(2,"0");
-    c.innerHTML=coinFace(d);c.setAttribute("role","img");
-    c.setAttribute("aria-label",d===100?"One dollar coin":`${d} cent coin`);
-    coinTray.appendChild(c); coinTray.classList.add("has");
-    sfx.coin();
-  }, 180*i));
+  out.forEach((d,i)=>setTimeout(()=>addChangeCoin(d),220*i));
 }
 function collectChange(){
   if(!S.change.length) return;
