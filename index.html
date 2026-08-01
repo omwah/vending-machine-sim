@@ -114,8 +114,8 @@ body{
   z-index:1;pointer-events:none;opacity:0
 }
 #slime-mold-floor{inset:0;width:100%;height:100%}
-#room.room-mold #slime-mold-wall{opacity:.93}
-#room.room-mold #slime-mold-floor{opacity:.96}
+#room.room-mold #slime-mold-wall{opacity:.93;pointer-events:auto;touch-action:none;cursor:crosshair}
+#room.room-mold #slime-mold-floor{opacity:.96;pointer-events:auto;touch-action:none;cursor:crosshair}
 #room.room-mold{
   background:
     radial-gradient(100% 48% at 50% -8%,rgba(226,228,136,.16),transparent 65%),
@@ -227,7 +227,7 @@ body{
   box-shadow:0 5px 13px rgba(0,0,0,.42),inset 0 0 0 2px rgba(225,163,101,.18);opacity:.94
 }
 /* ---------- stage / scaling ---------- */
-#viewport{position:relative;z-index:3;width:100%;display:flex;justify-content:center}
+#viewport{position:relative;z-index:3;width:100%;display:flex;justify-content:center;pointer-events:none}
 #stage{flex:0 0 auto;width:760px;height:1210px;transform-origin:top center;position:relative}
 
 /* ============================================================
@@ -244,6 +244,7 @@ body{
 #machine{
   position:absolute;inset:0;
   z-index:2;
+  pointer-events:auto;
   border-radius:14px 14px 6px 6px;
   background:
     linear-gradient(100deg, rgba(255,255,255,.28), rgba(0,0,0,0) 22%),
@@ -2321,7 +2322,8 @@ const ACHIEVEMENT_KEY="vending-machine-achievements-v1";
 const EVENT_ACHIEVEMENT_DEFS=[
   {id:"event:glass-break",title:"Smash and Grab",description:"Break the display glass and set every snack free.",icon:"glass"},
   {id:"event:machine-launch",title:"Vending Into Orbit",description:"Launch the entire vending machine off the screen.",icon:"launch"},
-  {id:"event:keypad-vortex",title:"Out of Order, Out of Space",description:"Twirl the vending machine into nothingness.",icon:"vortex"}
+  {id:"event:keypad-vortex",title:"Out of Order, Out of Space",description:"Twirl the vending machine into nothingness.",icon:"vortex"},
+  {id:"event:slime-painter",title:"Living Finger Paint",description:"Paint the moldy room with living slime for a few seconds.",icon:"paint"}
 ];
 function isSpecialItem(it){return !!(it&&(it.effectId||it.clueId));}
 function loadAchievements(){
@@ -2411,7 +2413,7 @@ function setRoomTheme(index,persist=true){
   roomEl.classList.remove(...ROOM_THEMES.map(theme=>theme[0]));
   const [className,name]=ROOM_THEMES[roomThemeIndex];roomEl.classList.add(className);
   roomEl.dataset.roomTheme=name;roomEl.setAttribute("aria-label","Change room background. Current: "+name);
-  roomEl.title=name+" — click to change the room";
+  roomEl.title=className==="room-mold"?name+" — drag the exposed wall or floor to paint slime; press B to change room":name+" — click to change the room";
   visitRoomTheme(className);
   if(persist)try{localStorage.setItem(ROOM_THEME_KEY,String(roomThemeIndex));}catch(e){}
 }
@@ -2429,6 +2431,13 @@ roomEl.addEventListener("keydown",e=>{
 });
 
 /* Agent/trail slime-mold renderer adapted from procedural-slime-mold-wall-demo.html. */
+const SLIME_PAINT_ACHIEVEMENT_MS=2000;
+let slimePaintSessionMs=0;
+function recordSlimePainting(elapsed){
+  if(ACHIEVEMENTS.unlocked["event:slime-painter"])return;
+  slimePaintSessionMs+=elapsed;
+  if(slimePaintSessionMs>=SLIME_PAINT_ACHIEVEMENT_MS)unlockAchievement("event:slime-painter");
+}
 function initSlimeMoldSurface(selector,{floorSurface=false,seed=0x51a7e31d,palette}){
   const canvas=$(selector);
   const ctx=canvas.getContext("2d");
@@ -2437,7 +2446,9 @@ function initSlimeMoldSurface(selector,{floorSurface=false,seed=0x51a7e31d,palet
   const TAU=Math.PI*2;
   const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
   let W=260,H=210,N=0,trail,nextTrail,activity,moisture,cracks,wallNoise,imageData;
-  let agents=[],steps=0,raf=0,resizeTimer=0,rngState=seed,lastTick=0;
+  let agents=[],recycleCursor=0,steps=0,raf=0,resizeTimer=0,rngState=seed,lastTick=0,paintAwakeUntil=0;
+  let pointerDown=false,lastPointerAt=0,lastPointerX=0,lastPointerY=0,lastPlantAt=0;
+  const maxAgents=floorSurface?3200:6800;
   const random=()=>{
     rngState^=rngState<<13;rngState^=rngState>>>17;rngState^=rngState<<5;
     return (rngState>>>0)/4294967296;
@@ -2497,7 +2508,12 @@ function initSlimeMoldSurface(selector,{floorSurface=false,seed=0x51a7e31d,palet
       const angle=random()*TAU,radiusAtPoint=Math.sqrt(random())*radius;
       const x=clamp(cx+Math.cos(angle)*radiusAtPoint,1,W-2);
       const y=clamp(cy+Math.sin(angle)*radiusAtPoint,1,H-2);
-      agents.push({x,y,a:random()*TAU,age:random()*500});
+      if(agents.length<maxAgents)agents.push({x,y,a:random()*TAU,age:random()*500});
+      else{
+        const agent=agents[recycleCursor];
+        recycleCursor=(recycleCursor+1)%agents.length;
+        agent.x=x;agent.y=y;agent.a=random()*TAU;agent.age=0;
+      }
       const p=idx(Math.floor(x),Math.floor(y));
       trail[p]=Math.min(8,trail[p]+1.5);activity[p]=Math.min(4,activity[p]+1);
     }
@@ -2511,7 +2527,7 @@ function initSlimeMoldSurface(selector,{floorSurface=false,seed=0x51a7e31d,palet
     simCanvas.width=W;simCanvas.height=H;imageData=simCtx.createImageData(W,H);
     trail=new Float32Array(N);nextTrail=new Float32Array(N);activity=new Float32Array(N);
     moisture=new Float32Array(N);cracks=new Float32Array(N);wallNoise=new Float32Array(N);
-    agents=[];steps=0;lastTick=0;rngState=seed;generateWall();
+    agents=[];recycleCursor=0;steps=0;lastTick=0;rngState=seed;generateWall();
     if(floorSurface){
       addColony(W*.105,H*.32,420);addColony(W*.905,H*.57,310);addColony(W*.54,H*.86,210);
     }else{
@@ -2568,12 +2584,48 @@ function initSlimeMoldSurface(selector,{floorSurface=false,seed=0x51a7e31d,palet
     ctx.imageSmoothingEnabled=true;ctx.drawImage(simCanvas,0,0,W,H,0,0,canvas.clientWidth,canvas.clientHeight);
   }
   function step(timestamp){
-    if(roomEl.classList.contains("room-mold")&&steps<170&&timestamp-lastTick>=50){
+    const ambientGrowthActive=steps<170;
+    const paintedGrowthActive=timestamp<paintAwakeUntil; // later strokes restart growth after ambient growth ends
+    if(roomEl.classList.contains("room-mold")&&(ambientGrowthActive||paintedGrowthActive)&&timestamp-lastTick>=50){
       simulateAgents();diffuseField();steps++;lastTick=timestamp;
       render();
     }
     raf=requestAnimationFrame(step);
   }
+  function pointerToSim(event){
+    const rect=canvas.getBoundingClientRect();
+    return {x:(event.clientX-rect.left)/rect.width*W,y:(event.clientY-rect.top)/rect.height*H};
+  }
+  function plant(event,amount){
+    if(!roomEl.classList.contains("room-mold"))return;
+    const point=pointerToSim(event);addColony(point.x,point.y,amount);
+    paintAwakeUntil=performance.now()+3500;render();
+  }
+  function finishPainting(event){
+    if(!pointerDown)return;
+    pointerDown=false;
+    if(event?.pointerId!==undefined&&canvas.hasPointerCapture?.(event.pointerId))canvas.releasePointerCapture(event.pointerId);
+  }
+  canvas.addEventListener("pointerdown",event=>{
+    if(!roomEl.classList.contains("room-mold")||event.button!==0)return;
+    event.preventDefault();event.stopPropagation();pointerDown=true;
+    lastPointerAt=lastPlantAt=performance.now();lastPointerX=event.clientX;lastPointerY=event.clientY;
+    canvas.setPointerCapture(event.pointerId);plant(event,floorSurface?240:520);
+  });
+  canvas.addEventListener("pointermove",event=>{
+    if(!pointerDown||!roomEl.classList.contains("room-mold"))return;
+    const now=performance.now(),distance=Math.hypot(event.clientX-lastPointerX,event.clientY-lastPointerY);
+    if(distance<.5)return;
+    event.preventDefault();event.stopPropagation();recordSlimePainting(Math.min(160,Math.max(0,now-lastPointerAt)));
+    lastPointerAt=now;lastPointerX=event.clientX;lastPointerY=event.clientY;
+    if(now-lastPlantAt>=70){plant(event,floorSurface?42:78);lastPlantAt=now;}
+  });
+  canvas.addEventListener("pointerup",finishPainting);
+  canvas.addEventListener("pointercancel",finishPainting);
+  canvas.addEventListener("lostpointercapture",()=>{pointerDown=false;});
+  canvas.addEventListener("click",event=>{
+    if(roomEl.classList.contains("room-mold")){event.preventDefault();event.stopPropagation();}
+  });
   addEventListener("resize",()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(initialize,140);},{passive:true});
   initialize();step();
   return()=>{cancelAnimationFrame(raf);clearTimeout(resizeTimer);};
@@ -3464,6 +3516,7 @@ function achievementIconSvg(achievement){
     glass:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 7h44v50H10z" fill="#9bd8ec" fill-opacity=".3" stroke="#dff7ff" stroke-width="3"/><circle cx="34" cy="30" r="4" fill="#fff"/><path d="m34 30-17-13m17 13 18-11M34 30l-18 8m18-8 16 13M34 30l-6 24m6-24 4-15M17 17l8 5-2 9m29-12-10 7 4 8M16 38l10-1 4 8m20-2-10-5-3 9" fill="none" stroke="#eafcff" stroke-width="2"/></svg>`,
     launch:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M33 5c11 8 16 20 13 34l-13 8-13-8C17 25 22 13 33 5Z" fill="#ddd9cb" stroke="#342d24" stroke-width="2"/><circle cx="33" cy="24" r="7" fill="#64d9e9" stroke="#173a42" stroke-width="2"/><path d="m20 34-9 11 12-2m23-9 9 11-12-2" fill="#c33b32" stroke="#4d1612" stroke-width="2"/><path d="m27 46 6 14 6-14-6 5z" fill="#ffca30" stroke="#e84718" stroke-width="2"/></svg>`,
     vortex:`<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="achievementVortex" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#69d7ff"/><stop offset=".5" stop-color="#9f59ed"/><stop offset="1" stop-color="#ffcc4b"/></linearGradient></defs><path d="M9 17c12-14 40-11 44 7 4 17-18 31-34 21C4 36 16 17 31 20c13 3 10 19 0 20-9 1-14-9-8-15" fill="none" stroke="url(#achievementVortex)" stroke-width="6" stroke-linecap="round"/><circle cx="29" cy="30" r="4" fill="#090909"/></svg>`,
+    paint:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 12h48v40H8z" fill="#756f2b" stroke="#211d0a" stroke-width="3"/><path d="M12 45c8-12 8-25 18-25 8 0 5 12 13 12 5 0 7-6 9-12v28H12z" fill="#b8a21e"/><path d="M13 38c8-8 10-19 18-15 6 3 4 12 12 11 5-1 6-5 9-9" fill="none" stroke="#e4cf3b" stroke-width="6" stroke-linecap="round"/><path d="m21 8 8 5-12 24-8-5z" fill="#b77935" stroke="#3c2512" stroke-width="2"/><path d="m17 37-8-5-2 10z" fill="#d9cfc0" stroke="#3c2512" stroke-width="2"/><circle cx="42" cy="17" r="4" fill="#584a0f"/><circle cx="49" cy="40" r="3" fill="#5d5113"/></svg>`,
     rooms:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M7 13h50v39H7z" fill="#d8c49a" stroke="#221b14" stroke-width="3"/><path d="M7 36h50v16H7z" fill="#74452b"/><path d="M32 13v39M7 36h50" stroke="#221b14" stroke-width="2"/><path d="M12 18h14v13H12z" fill="#7c9fbd"/><path d="M38 18h14v13H38z" fill="#8caa5c"/><path d="M12 40h14v8H12z" fill="#8d2e2b"/><path d="M38 40h14v8H38z" fill="#c58a3a"/></svg>`
   };
   return icons[achievement.icon]||icons.rooms;
