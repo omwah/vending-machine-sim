@@ -250,6 +250,7 @@
         height: settings.height || 78,
         padding: settings.padding == null ? 4 : settings.padding
       };
+      if (settings.columns != null) pileOptions.columns = settings.columns;
       if (settings.shapes) pileOptions.shapes = settings.shapes;
       if (settings.palettes) pileOptions.palettes = settings.palettes;
       shapeEngine.renderPile(target, pileOptions);
