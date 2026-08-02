@@ -34,7 +34,9 @@
     darkChocolate: { label: "Dark chocolate", base: "#3b241b", light: "#674333", dark: "#170d09", accent: "#a97955" },
     whiteChocolate: { label: "White chocolate", base: "#e7d3ad", light: "#fff1d1", dark: "#aa8958", accent: "#fff8df" },
     mintWhite: { label: "Peppermint", base: "#f1eadc", light: "#ffffff", dark: "#b9ab98", accent: "#cf3438" },
-    caramel: { label: "Caramel", base: "#b66a2c", light: "#e6a35b", dark: "#683317", accent: "#f1c17d" }
+    caramel: { label: "Caramel", base: "#b66a2c", light: "#e6a35b", dark: "#683317", accent: "#f1c17d" },
+    limeGreen: { label: "Lime green", base: "#86d62f", light: "#b8f064", dark: "#477f16", accent: "#d9ff8a" },
+    lightBrown: { label: "Light brown", base: "#c89a62", light: "#e5c18e", dark: "#79502d", accent: "#f1d5a8" }
   });
 
   const CATALOG = Object.freeze({
@@ -45,6 +47,8 @@
         sandwichRound: { label: "Round sandwich", material: "baked", palettes: ["darkCocoa", "vanilla", "redCocoa"] },
         sandwichOval: { label: "Oval sandwich", material: "baked", palettes: ["vanilla", "cocoa"] },
         embossedRect: { label: "Embossed shortbread", material: "baked", palettes: ["vanilla", "butter", "cocoa"] },
+        squareCracker: { label: "Square cracker", material: "baked", palettes: ["limeGreen"] },
+        dogBone: { label: "Dog-bone biscuit", material: "baked", palettes: ["lightBrown"] },
         waferRoll: { label: "Rolled wafer", material: "baked", palettes: ["vanilla", "cocoa", "pink"] },
         ringCookie: { label: "Ring cookie", material: "baked", palettes: ["butter", "oat", "cocoa"] },
         chunkFragment: { label: "Chunk fragment", material: "baked", palettes: ["butter", "cocoa", "darkCocoa"] }
@@ -341,6 +345,26 @@
       element("path", { d: "M 34 54 Q 50 35 66 54 Q 50 64 34 54 Z", fill: "none", stroke: context.palette.dark, "stroke-width": 1.7, opacity: 0.7 })
     );
     addSpecks(group, context, 8, { x: 25, y: 32, width: 50, height: 34 }, [context.palette.dark]);
+  }
+
+  function renderSquareCracker(group, context) {
+    append(group,
+      element("rect", { x: 18, y: 18, width: 64, height: 64, rx: 7, fill: context.fill, stroke: context.palette.dark, "stroke-width": 2.2 }),
+      element("rect", { x: 24, y: 24, width: 52, height: 52, rx: 4, fill: "none", stroke: context.palette.dark, "stroke-width": 1.4, opacity: 0.54 })
+    );
+    [[36, 36], [64, 36], [36, 64], [64, 64]].forEach(([cx, cy]) => {
+      group.appendChild(element("circle", { cx, cy, r: 2.7, fill: context.palette.dark, opacity: 0.68 }));
+    });
+    addSpecks(group, context, 7, { x: 27, y: 27, width: 46, height: 46 }, [context.palette.dark]);
+  }
+
+  function renderDogBone(group, context) {
+    const body = "M 29 34 C 23 25 13 27 13 36 C 13 42 17 46 23 47 L 23 53 C 17 54 13 58 13 64 C 13 73 23 75 29 66 L 71 66 C 77 75 87 73 87 64 C 87 58 83 54 77 53 L 77 47 C 83 46 87 42 87 36 C 87 27 77 25 71 34 Z";
+    append(group,
+      element("path", { d: body, fill: context.fill, stroke: context.palette.dark, "stroke-width": 2.2 }),
+      element("path", { d: "M 32 40 Q 50 35 68 40 M 32 60 Q 50 65 68 60", fill: "none", stroke: context.palette.dark, "stroke-width": 1.5, opacity: 0.42 })
+    );
+    addSpecks(group, context, 8, { x: 27, y: 36, width: 46, height: 28 }, [context.palette.dark]);
   }
 
   function renderWaferRoll(group, context) {
@@ -643,6 +667,8 @@
     sandwichRound: renderSandwichRound,
     sandwichOval: renderSandwichOval,
     embossedRect: renderEmbossedRect,
+    squareCracker: renderSquareCracker,
+    dogBone: renderDogBone,
     waferRoll: renderWaferRoll,
     ringCookie: renderRingCookie,
     chunkFragment: renderChunkFragment,
