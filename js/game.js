@@ -32,8 +32,8 @@ function setRoomTheme(index,persist=true){
   roomThemeIndex=(index+ROOM_THEMES.length)%ROOM_THEMES.length;
   roomEl.classList.remove(...ROOM_THEMES.map(theme=>theme[0]));
   const [className,name]=ROOM_THEMES[roomThemeIndex];roomEl.classList.add(className);
-  roomEl.dataset.roomTheme=name;roomEl.setAttribute("aria-label","Change room background. Current: "+name);
-  roomEl.title=className==="room-mold"?name+" — drag the exposed wall or floor to paint slime; press B to change room":name+" — click to change the room";
+  roomEl.dataset.roomTheme=name;roomEl.setAttribute("aria-label","Vending machine room background. Current: "+name);
+  roomEl.title=className==="room-mold"?name+" — drag the exposed wall or floor to paint slime; press B to change room":name+" — press B to change the room";
   visitRoomTheme(className);
   if(persist)try{localStorage.setItem(ROOM_THEME_KEY,String(roomThemeIndex));}catch(e){}
 }
@@ -44,11 +44,6 @@ try{
     roomThemeIndex=savedRoomTheme;
 }catch(e){}
 setRoomTheme(roomThemeIndex,false);
-roomEl.addEventListener("click",cycleRoomTheme);
-roomEl.addEventListener("keydown",e=>{
-  if(e.key!=="Enter"&&e.key!==" ")return;
-  e.preventDefault();e.stopPropagation();cycleRoomTheme();
-});
 
 /* Agent/trail slime-mold renderer adapted from procedural-slime-mold-wall-demo.html. */
 const SLIME_PAINT_ACHIEVEMENT_MS=2000;
@@ -656,6 +651,7 @@ function achievementIconSvg(achievement){
     launch:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M33 5c11 8 16 20 13 34l-13 8-13-8C17 25 22 13 33 5Z" fill="#ddd9cb" stroke="#342d24" stroke-width="2"/><circle cx="33" cy="24" r="7" fill="#64d9e9" stroke="#173a42" stroke-width="2"/><path d="m20 34-9 11 12-2m23-9 9 11-12-2" fill="#c33b32" stroke="#4d1612" stroke-width="2"/><path d="m27 46 6 14 6-14-6 5z" fill="#ffca30" stroke="#e84718" stroke-width="2"/></svg>`,
     vortex:`<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="achievementVortex" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#69d7ff"/><stop offset=".5" stop-color="#9f59ed"/><stop offset="1" stop-color="#ffcc4b"/></linearGradient></defs><path d="M9 17c12-14 40-11 44 7 4 17-18 31-34 21C4 36 16 17 31 20c13 3 10 19 0 20-9 1-14-9-8-15" fill="none" stroke="url(#achievementVortex)" stroke-width="6" stroke-linecap="round"/><circle cx="29" cy="30" r="4" fill="#090909"/></svg>`,
     paint:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 12h48v40H8z" fill="#756f2b" stroke="#211d0a" stroke-width="3"/><path d="M12 45c8-12 8-25 18-25 8 0 5 12 13 12 5 0 7-6 9-12v28H12z" fill="#b8a21e"/><path d="M13 38c8-8 10-19 18-15 6 3 4 12 12 11 5-1 6-5 9-9" fill="none" stroke="#e4cf3b" stroke-width="6" stroke-linecap="round"/><path d="m21 8 8 5-12 24-8-5z" fill="#b77935" stroke="#3c2512" stroke-width="2"/><path d="m17 37-8-5-2 10z" fill="#d9cfc0" stroke="#3c2512" stroke-width="2"/><circle cx="42" cy="17" r="4" fill="#584a0f"/><circle cx="49" cy="40" r="3" fill="#5d5113"/></svg>`,
+    "all-items":`<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="7" y="8" width="50" height="48" rx="6" fill="#26303a" stroke="#f0c958" stroke-width="3"/><g fill="#f0c958"><rect x="13" y="15" width="9" height="12" rx="2"/><rect x="27" y="15" width="9" height="12" rx="2"/><rect x="41" y="15" width="9" height="12" rx="2"/><rect x="13" y="33" width="9" height="12" rx="2"/><rect x="27" y="33" width="9" height="12" rx="2"/><rect x="41" y="33" width="9" height="12" rx="2"/></g><path d="m48 42 2.4 4.8 5.3.8-3.8 3.7.9 5.2-4.8-2.5-4.8 2.5.9-5.2-3.8-3.7 5.3-.8z" fill="#fff2a1" stroke="#8b6212"/></svg>`,
     rooms:`<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M7 13h50v39H7z" fill="#d8c49a" stroke="#221b14" stroke-width="3"/><path d="M7 36h50v16H7z" fill="#74452b"/><path d="M32 13v39M7 36h50" stroke="#221b14" stroke-width="2"/><path d="M12 18h14v13H12z" fill="#7c9fbd"/><path d="M38 18h14v13H38z" fill="#8caa5c"/><path d="M12 40h14v8H12z" fill="#8d2e2b"/><path d="M38 40h14v8H38z" fill="#c58a3a"/></svg>`
   };
   return icons[achievement.icon]||icons.rooms;
@@ -999,7 +995,7 @@ async function vend(it,change){
     bayItem.classList.add("show");S.trayItem=it.code;
     doorEl.classList.add("ready");
     if(change>0)dropChange(change);
-    S.entry="";highlight();S.bought++;discoverClue(it);
+    S.entry="";highlight();S.bought++;discoverClue(it);recordItemPurchase(it);
     if(isSpecialItem(it))unlockAchievement("item:"+it.id);
     setMode("awaitingPickup");
     setVFD(change>0?"CHANGE "+money(change)+"\nPUSH TRAY":"THANK YOU\nPUSH TRAY",2600);

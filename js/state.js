@@ -120,17 +120,19 @@ const EVENT_ACHIEVEMENT_DEFS=[
   {id:"event:glass-break",title:"Smash and Grab",description:"Break the display glass and set every snack free.",icon:"glass"},
   {id:"event:machine-launch",title:"Vending Into Orbit",description:"Launch the entire vending machine off the screen.",icon:"launch"},
   {id:"event:keypad-vortex",title:"Out of Order, Out of Space",description:"Twirl the vending machine into nothingness.",icon:"vortex"},
-  {id:"event:slime-painter",title:"Living Finger Paint",description:"Paint the moldy room with living slime for a few seconds.",icon:"paint"}
+  {id:"event:slime-painter",title:"Living Finger Paint",description:"Paint the moldy room with living slime for a few seconds.",icon:"paint"},
+  {id:"event:all-items",title:"One of Everything",description:"Purchase every item at least once. Restraint was never on the menu.",icon:"all-items"}
 ];
 function isSpecialItem(it){return !!(it&&(it.effectId||it.clueId));}
 function loadAchievements(){
   try{
     const raw=JSON.parse(localStorage.getItem(ACHIEVEMENT_KEY)||"null");
     if(raw?.version===1&&raw.unlocked&&typeof raw.unlocked==="object")return {
-      version:1,unlocked:{...raw.unlocked},rooms:Array.isArray(raw.rooms)?[...new Set(raw.rooms)]:[]
+      version:1,unlocked:{...raw.unlocked},rooms:Array.isArray(raw.rooms)?[...new Set(raw.rooms)]:[],
+      purchased:Array.isArray(raw.purchased)?[...new Set(raw.purchased)]:[]
     };
   }catch(e){}
-  return {version:1,unlocked:{},rooms:[]};
+  return {version:1,unlocked:{},rooms:[],purchased:[]};
 }
 const ACHIEVEMENTS=loadAchievements();
 function saveAchievements(){try{localStorage.setItem(ACHIEVEMENT_KEY,JSON.stringify(ACHIEVEMENTS));}catch(e){}}
@@ -165,6 +167,15 @@ function unlockAchievement(id,timestamp=Date.now(),{silent=false}={}){
   if(!silent)showAchievementToast(id);
   return true;
 }
+function recordItemPurchase(it,{silent=false}={}){
+  if(!it)return false;
+  if(!ACHIEVEMENTS.purchased.includes(it.id)){
+    ACHIEVEMENTS.purchased.push(it.id);saveAchievements();
+  }
+  const allPurchased=Object.values(ITEMS).every(item=>ACHIEVEMENTS.purchased.includes(item.id));
+  if(allPurchased)unlockAchievement("event:all-items",Date.now(),{silent});
+  return allPurchased;
+}
 function visitRoomTheme(className){
   if(!ACHIEVEMENTS.rooms.includes(className)){
     ACHIEVEMENTS.rooms.push(className);saveAchievements();
@@ -175,7 +186,10 @@ function visitRoomTheme(className){
 function syncHistoricAchievements(){
   Object.entries(COLLECTION.items).forEach(([id,saved])=>{
     const it=ITEMS[saved.code]||Object.values(ITEMS).find(item=>item.id===id);
-    if(saved.count>0&&isSpecialItem(it))unlockAchievement("item:"+it.id,Date.now(),{silent:true});
+    if(saved.count>0&&it){
+      recordItemPurchase(it,{silent:true});
+      if(isSpecialItem(it))unlockAchievement("item:"+it.id,Date.now(),{silent:true});
+    }
   });
   META.solved.forEach(id=>{if(SECRET_COMMAND_DEFS[id])unlockAchievement("code:"+id,Date.now(),{silent:true});});
 }
