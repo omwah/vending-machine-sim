@@ -99,6 +99,13 @@ function stick(o){
     <div class="gl"></div></div>`;
 }
 
+/* Procedural engine packages keep the inventory's string-based art contract.
+   The packaging engine delegates window contents to SnackShapeEngine. */
+function enginePackage(options){
+  if(!globalThis.SnackPackagingEngine)throw new Error("SnackPackagingEngine is not loaded");
+  return SnackPackagingEngine.create(options).outerHTML;
+}
+
 // shelf data ---------------------------------------------------
 // w/h are the on-shelf footprint in design px.
 const SHELVES = [
@@ -116,9 +123,12 @@ const SHELVES = [
     {id:"after-midnight",effectId:"midnight",clueId:"000",code:"201",price:125,name:"After Midnight Bites",w:88,h:90,
       art:()=>bag({brand:"AFTER",bs:14,flav:"MIDNIGHT BITES — Keep Dry",c1:"#16131f",c2:"#0c0a11",c3:"#030204",tc:"#b7e34c",fc:"#ef4b42",food:["cracker","nut"],n:9,po:{w:29},oz:"2.0"}),
       trayArt:()=>{const wrap=document.createElement("div");wrap.innerHTML=bag({brand:"AFTER",bs:14,flav:"MIDNIGHT BITES — Keep Dry",c1:"#16131f",c2:"#0c0a11",c3:"#030204",tc:"#b7e34c",fc:"#ef4b42",food:["cracker","nut"],n:9,po:{w:29},oz:"2.0"});wrap.firstElementChild.classList.add("fx-torn");return wrap.innerHTML;}},
-    {id:"brawndo",effectId:"brawndo",clueId:"808",code:"203",price:125,name:"Brawndo",w:88,h:90,
-      art:()=>pouch({brand:"BRAWNDO<br>THE THIRST MUTILATOR",food:["jelly b","jelly g"],n:9,
-        po:{w:28,ar:1.8},c1:"#1478d4",c2:"#06367d",tc:"#efff42"})},
+    {code:"203",price:150,name:"Quantum Crisps",w:88,h:90,
+      art:()=>enginePackage({type:"bag",code:"203",variant:"industrial",title:["QUANTUM","CRISPS"],
+        subtitle:"Every flavor at once",netWeight:"1.5 OZ",
+        colors:{primary:"#7139b7",secondary:"#35207c",dark:"#160d3d",panel:"#ff7b22",text:"#fff7d6",detail:"#72efff"},
+        contents:{type:"chip",count:13,seed:203,shapes:["tortillaTriangle","ridgedSlice","cornCurl"],
+          palettes:["blueCorn","cheeseOrange","cornYellow"]}})},
     {code:"205",price:125,name:"Go Lite! Popped Chips",w:88,h:90,
       art:()=>bag({brand:"GO LITE!",bs:13,flav:"100 Calorie Popped",c1:"#e5d3f2",c2:"#b98fd8",c3:"#7d4faa",tc:"#3d1a5c",fc:"#4d2470",food:"pop",n:10,po:{w:30},plight:1,oz:"0.8"})},
     {code:"207",price:150,name:"Sweet Potato Tortilla Chips",w:88,h:90,
@@ -164,9 +174,10 @@ const SHELVES = [
     {code:"506",price:150,name:"Reese's Peanut Butter Cups",w:56,h:92,
       art:()=>bar({brand:"REESE'S",sm:1,sub:"Peanut Butter Cups",c1:"#f0a71c",c2:"#d07a08",
         c3:"#8f4c04",tc:"#5c2408",sc:"#5c2408",food:"cup",n:2,po:{cols:2,w:44,ar:1,rot:0}})},
-    {code:"508",price:175,name:"Kit Kat Wafer Bar",w:56,h:92,
-      art:()=>bar({brand:"KIT KAT",sm:1,sub:"Crisp Wafers",c1:"#e2231a",c2:"#b0100c",c3:"#6b0705",
-        tc:"#ffffff",food:"wafer",n:3,po:{cols:3,w:24,ar:3.2,rot:0}})}
+    {id:"brawndo",effectId:"brawndo",clueId:"808",code:"508",price:175,name:"Brawndo",w:56,h:92,
+      art:()=>enginePackage({type:"can",code:"508",brand:"BRAWNDO",subtitle:"THE THIRST MUTILATOR",
+        netWeight:"12 FL OZ",condensation:true,dent:true,
+        colors:{primary:"#11a9df",secondary:"#0750ad",dark:"#061f63",panel:"#ecf238",text:"#ffffff",detail:"#efff42"}})}
   ],
   [ // 6xx — cookies & pastry
     {code:"601",price:150,name:"Famous Amos Cookies",w:88,h:90,

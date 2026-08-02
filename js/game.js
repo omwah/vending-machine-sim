@@ -375,6 +375,27 @@ function buildCoil(it){
   return {back:layer(backIdx,"back"), front:layer([0],"front")};
 }
 
+function fitEnginePackage(root,targetWidth,targetHeight,rotation=0){
+  const pk=root?.matches?.(".spe-package")?root:root?.querySelector?.(".spe-package");
+  if(!pk||!globalThis.SnackPackagingEngine)return;
+  const layout=()=>{
+    if(!pk.isConnected)return;
+    const nativeWidth=Number(pk.dataset.width)||pk.offsetWidth;
+    const nativeHeight=Number(pk.dataset.height)||pk.offsetHeight;
+    const host=pk.parentElement;
+    const availableWidth=targetWidth||host?.clientWidth||nativeWidth;
+    const availableHeight=targetHeight||host?.clientHeight||nativeHeight;
+    const displayScale=Math.min(availableWidth/nativeWidth,availableHeight/nativeHeight);
+    pk.classList.add("spe-fitted");
+    pk.style.setProperty("--spe-native-width",nativeWidth+"px");
+    pk.style.setProperty("--spe-native-height",nativeHeight+"px");
+    pk.style.setProperty("--spe-display-scale",String(displayScale));
+    pk.style.setProperty("--spe-display-rotation",rotation+"deg");
+    SnackPackagingEngine.fitText(pk);
+  };
+  layout();requestAnimationFrame(()=>{layout();requestAnimationFrame(layout);});
+}
+
 /* ---- build the shelves ---- */
 SHELVES.forEach((row,ri)=>{
   const sh=document.createElement("div"); sh.className="shelf";
@@ -389,6 +410,7 @@ SHELVES.forEach((row,ri)=>{
       `position:relative;width:${it.w}px;height:min(${it.h}px,100%);max-width:94%;flex:0 0 auto`;
     holder.innerHTML=it.art();
     holder.firstChild.style.width="100%"; holder.firstChild.style.height="100%";
+    fitEnginePackage(holder);
     const coil=buildCoil(it);
     slot.appendChild(coil.back);
     slot.appendChild(holder);
@@ -565,14 +587,18 @@ function renderCollection(){
       const art=document.createElement("div");art.className="collection-art";art.innerHTML=it.art();
       const pk=art.firstElementChild;
       const artScale=Math.min(112/it.w,142/it.h),gw=it.w*artScale,gh=it.h*artScale;
-      pk.classList.add("gallery-empty");pk.style.setProperty("--gallery-w",gw+"px");
+      if(!pk.matches(".spe-package"))pk.classList.add("gallery-empty");
+      pk.style.setProperty("--gallery-w",gw+"px");
       pk.style.setProperty("--gallery-h",gh+"px");pk.style.setProperty("--u",artScale+"px");
-      const opening=document.createElement("i");opening.className="empty-opening";
-      if(it.clueId){
-        const code=document.createElement("b");code.className="secret-code";code.textContent=SECRET_CODES[it.clueId];
-        opening.appendChild(code);
+      fitEnginePackage(pk,gw,gh);
+      if(!pk.matches(".spe-package")){
+        const opening=document.createElement("i");opening.className="empty-opening";
+        if(it.clueId){
+          const code=document.createElement("b");code.className="secret-code";code.textContent=SECRET_CODES[it.clueId];
+          opening.appendChild(code);
+        }
+        pk.appendChild(opening);
       }
-      pk.appendChild(opening);
       const name=document.createElement("div");name.className="name";name.textContent=it.name;
       const count=document.createElement("div");count.className="count";
       count.textContent=saved.count===1?"1 EMPTY PACKAGE":saved.count+" EMPTY PACKAGES";
@@ -635,6 +661,7 @@ function fillAchievementIcon(icon,achievement,maxWidth=46,maxHeight=54){
     const artScale=Math.min(maxWidth/achievement.item.w,maxHeight/achievement.item.h);
     pk.style.width=achievement.item.w*artScale+"px";pk.style.height=achievement.item.h*artScale+"px";
     pk.style.setProperty("--u",artScale+"px");
+    fitEnginePackage(pk,achievement.item.w*artScale,achievement.item.h*artScale);
   }else icon.innerHTML=achievementIconSvg(achievement);
 }
 function showAchievementToast(id){
@@ -963,6 +990,7 @@ async function vend(it,change){
     const bw=Math.min(it.w*1.15,150);
     pk.style.width=bw+"px"; pk.style.height=(bw*it.h/it.w)+"px";
     pk.style.setProperty("--u",(bw/it.w)+"px");pk.style.transform="rotate(-6deg)";
+    fitEnginePackage(pk,bw,bw*it.h/it.w,-6);
     bayItem.classList.add("show");S.trayItem=it.code;
     doorEl.classList.add("ready");
     if(change>0)dropChange(change);
@@ -1133,6 +1161,7 @@ function retrieve(){
   revealItem.style.width=rw+"px"; revealItem.style.height=rh+"px";
   const rpk=revealItem.firstElementChild;
   rpk.style.width="100%"; rpk.style.height="100%";
+  fitEnginePackage(rpk,rw,rh);
   rpk.style.setProperty("--u",(rw/it.w)+"px");
   revealText.textContent=it.name;
   reveal.classList.add("on");
