@@ -32,6 +32,16 @@
     can: { width: 78, height: 128 }
   });
 
+  // Width of a generated contents heap in its own user units, and the width to
+  // height ratio of each package's window as laid out by the CSS below. The bag
+  // window is 78% x 34% of a 92 x 126 bag; the pouch window is 90% x 50% of a
+  // 90 x 126 pouch. Keep these in step with the `.spe-window` rules.
+  const PILE_WIDTH = 120;
+  const WINDOW_ASPECT = Object.freeze({
+    bag: (92 * 0.78) / (126 * 0.34),
+    pouch: (90 * 0.9) / (126 * 0.5)
+  });
+
   const DEFAULTS = Object.freeze({
     bag: {
       variant: "industrial",
@@ -39,14 +49,14 @@
       subtitle: "Baked and ready",
       netWeight: "2.0 OZ",
       colors: { primary: "#d98532", secondary: "#98411d", dark: "#3f180c", panel: "#57210e", text: "#ffe1a3", detail: "#fff0bc" },
-      contents: { type: "cookie", count: 18, seed: 101 }
+      contents: { type: "cookie", seed: 101 }
     },
     pouch: {
       brand: "ORIGINAL",
       subtitle: "Sweet & salty mix",
       netWeight: "2.25 OZ",
       colors: { primary: "#e0aa32", secondary: "#9f5d17", dark: "#3c240d", panel: "#bb741d", text: "#4b2809", detail: "#f8e9c0" },
-      contents: { type: "candy", count: 22, seed: 403 }
+      contents: { type: "candy", seed: 403 }
     },
     bar: {
       brand: "NIGHT BAR",
@@ -237,22 +247,24 @@
     }
   }
 
-  function populateWindow(target, options) {
+  function populateWindow(target, type, options) {
     if (!target || options === false) return;
-    const settings = { type: "cookie", count: 18, seed: 1, ...options };
+    const settings = { type: "cookie", seed: 1, ...options };
     const shapeEngine = global.SnackShapeEngine;
     if (shapeEngine && typeof shapeEngine.renderPile === "function" && settings.fallback !== true) {
+      // Give the heap the same aspect as the window it fills, so covering the
+      // window crops the heap evenly instead of shaving one axis hard.
       const pileOptions = {
-        type: settings.type,
-        count: settings.count,
-        seed: settings.seed,
-        width: settings.width || 120,
-        height: settings.height || 78,
-        padding: settings.padding == null ? 4 : settings.padding
+        width: PILE_WIDTH,
+        height: Math.round(PILE_WIDTH / (WINDOW_ASPECT[type] || WINDOW_ASPECT.bag)),
+        ...settings
       };
-      if (settings.columns != null) pileOptions.columns = settings.columns;
-      if (settings.shapes) pileOptions.shapes = settings.shapes;
-      if (settings.palettes) pileOptions.palettes = settings.palettes;
+      // The heap stops when it has filled the window, so a requested `count` is
+      // a ceiling rather than a target. The flat fallback below still treats it
+      // as an exact number of pieces.
+      if (settings.count != null && settings.maxCount == null) pileOptions.maxCount = settings.count;
+      delete pileOptions.count;
+      delete pileOptions.fallback;
       shapeEngine.renderPile(target, pileOptions);
       return;
     }
@@ -273,7 +285,7 @@
     lines.forEach((line) => make("span", "", brand, line));
     make("span", "spe-subtitle", panel, settings.subtitle);
     const windowElement = make("div", "spe-window", root);
-    populateWindow(windowElement, settings.contents);
+    populateWindow(windowElement, "bag", settings.contents);
     make("small", "spe-micro", root, `NET WT ${settings.netWeight}`);
     make("i", "spe-shine", root);
     addCommonText(root, settings, "pillow bag");
@@ -288,7 +300,7 @@
     make("b", "spe-brand", root, settings.brand);
     make("span", "spe-subtitle", root, settings.subtitle);
     const windowElement = make("div", "spe-window", root);
-    populateWindow(windowElement, settings.contents);
+    populateWindow(windowElement, "pouch", settings.contents);
     make("small", "spe-micro", root, `NET WT ${settings.netWeight}`);
     make("i", "spe-shine", root);
     addCommonText(root, settings, "stand-up pouch");

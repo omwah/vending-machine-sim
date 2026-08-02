@@ -127,7 +127,7 @@ const SHELVES = [
       art:()=>enginePackage({type:"bag",code:"203",variant:"industrial",title:["QUANTUM","CRISPS"],
         subtitle:"Every flavor at once",netWeight:"1.5 OZ",
         colors:{primary:"#7139b7",secondary:"#35207c",dark:"#160d3d",panel:"#ff7b22",text:"#fff7d6",detail:"#72efff"},
-        contents:{type:"chip",count:80,seed:203,columns:13,shapes:["tortillaTriangle","ridgedSlice","cornCurl"],
+        contents:{type:"chip",seed:203,shapes:["tortillaTriangle","ridgedSlice","cornCurl","kettleFold"],
           palettes:["blueCorn","cheeseOrange","cornYellow"]}})},
     {code:"205",price:125,name:"Go Lite! Popped Chips",w:88,h:90,
       art:()=>bag({brand:"GO LITE!",bs:13,flav:"100 Calorie Popped",c1:"#e5d3f2",c2:"#b98fd8",c3:"#7d4faa",tc:"#3d1a5c",fc:"#4d2470",food:"pop",n:10,po:{w:30},plight:1,oz:"0.8"})},

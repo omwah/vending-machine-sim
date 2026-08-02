@@ -158,24 +158,48 @@ const packaging = await evaluate(`(()=>{
       layout:{packageWidth:packageElement.clientWidth,panelWidth:packageElement.querySelector('.spe-panel,.spe-label')?.clientWidth||0,
         brandWidth:brand?.clientWidth||0,brandScrollWidth:brand?.scrollWidth||0}};
   });
-  const replacementShapes=[...document.querySelectorAll('.slot[data-code="203"] svg[data-snack-type]')];
-  const footprintCounts=Object.values(replacementShapes.reduce((counts,shape)=>{
-    const footprint=shape.dataset.pileFootprint;counts[footprint]=(counts[footprint]||0)+1;return counts;
-  },{}));
-  const averageCenterY=replacementShapes.reduce((sum,shape)=>sum+Number(shape.getAttribute('y'))+Number(shape.getAttribute('height'))/2,0)/replacementShapes.length;
-  const centerYs=replacementShapes.map(shape=>Number(shape.getAttribute('y'))+Number(shape.getAttribute('height'))/2);
-  const averagePieceSize=replacementShapes.reduce((sum,shape)=>sum+Number(shape.getAttribute('width')),0)/replacementShapes.length;
-  const croppedBottom=replacementShapes.filter(shape=>Number(shape.getAttribute('y'))+Number(shape.getAttribute('height'))>78).length;
-  const croppedSides=replacementShapes.filter(shape=>Number(shape.getAttribute('x'))<0||
-    Number(shape.getAttribute('x'))+Number(shape.getAttribute('width'))>120).length;
+  // Quantum Crisps' window is filled by a gravity-settled heap. "Looks right" is
+  // a judgement call, so measure the two things that make it wrong: bare
+  // background showing through (sparse) and pieces stacked so deep that no
+  // silhouette survives (overpacked). Each piece reports the ink ellipse the
+  // settle used for it, so coverage can be sampled analytically.
+  const pileSvg=document.querySelector('.slot[data-code="203"] .spe-window>svg');
+  const pileBox=(pileSvg?.getAttribute('viewBox')||'0 0 120 72').split(' ').map(Number);
+  const pileWidth=pileBox[2],pileHeight=pileBox[3];
+  const pilePieces=[...document.querySelectorAll('.slot[data-code="203"] svg[data-pile-index]')].map(shape=>{
+    const [rx,ry]=shape.getAttribute('data-pile-ink').split(',').map(Number);
+    const size=Number(shape.getAttribute('width')),angle=Number(shape.getAttribute('data-pile-rotation'))*Math.PI/180;
+    return {size,rx,ry,cos:Math.cos(-angle),sin:Math.sin(-angle),
+      cx:Number(shape.getAttribute('x'))+size/2,cy:Number(shape.getAttribute('y'))+size/2,
+      hw:Math.hypot(rx*Math.cos(angle),ry*Math.sin(angle)),hh:Math.hypot(rx*Math.sin(angle),ry*Math.cos(angle)),
+      depth:Number(shape.dataset.pileDepth)};
+  });
+  const inkCovers=(piece,x,y)=>{
+    const dx=x-piece.cx,dy=y-piece.cy,lx=dx*piece.cos-dy*piece.sin,ly=dx*piece.sin+dy*piece.cos;
+    return (lx*lx)/(piece.rx*piece.rx)+(ly*ly)/(piece.ry*piece.ry)<=1;
+  };
+  let samples=0,covered=0,crowded=0;
+  for(let row=0;row<40;row+=1)for(let column=0;column<60;column+=1){
+    const x=(column+.5)*pileWidth/60,y=(row+.5)*pileHeight/40;samples+=1;
+    const hits=pilePieces.filter(piece=>inkCovers(piece,x,y)).length;
+    if(hits>=1)covered+=1;
+    if(hits>=3)crowded+=1;
+  }
+  const total=(pick)=>pilePieces.reduce((sum,piece)=>sum+pick(piece),0);
   return {
     engines:{shape:SnackShapeEngine.version,packaging:SnackPackagingEngine.version},packages,
     brawndo:{slot:ITEMS['508']?.id,type:document.querySelector('.slot[data-code="508"] .spe-package')?.dataset.packageType,
       coilWraps:document.querySelectorAll('.slot[data-code="508"] .coilwrap').length},
     replacement:{name:ITEMS['203']?.name,type:document.querySelector('.slot[data-code="203"] .spe-package')?.dataset.packageType,
-      shapes:replacementShapes.length,maxDepth:Math.max(...replacementShapes.map(shape=>Number(shape.dataset.pileDepth))),
-      maxFootprintOccupancy:Math.max(...footprintCounts),averageCenterY:+averageCenterY.toFixed(2),croppedBottom,
-      croppedSides,averagePieceSize:+averagePieceSize.toFixed(2),distinctCenters:new Set(centerYs.map(value=>value.toFixed(1))).size}
+      shapes:pilePieces.length,fillRatio:+(covered/samples).toFixed(3),crowdRatio:+(crowded/samples).toFixed(3),
+      overlapMean:+(total(piece=>piece.depth)/pilePieces.length).toFixed(2),
+      averagePieceSize:+(total(piece=>piece.size)/pilePieces.length).toFixed(2),
+      averageCenterY:+(total(piece=>piece.cy)/pilePieces.length).toFixed(2),
+      croppedSides:pilePieces.filter(piece=>piece.cx-piece.hw<0||piece.cx+piece.hw>pileWidth).length,
+      croppedBottom:pilePieces.filter(piece=>piece.cy+piece.hh>pileHeight).length,
+      croppedTop:pilePieces.filter(piece=>piece.cy-piece.hh<0).length,
+      minTop:+Math.min(...pilePieces.map(piece=>piece.cy-piece.hh)).toFixed(2),
+      distinctCenters:new Set(pilePieces.map(piece=>piece.cy.toFixed(1))).size}
   };
 })()`);
 
@@ -238,6 +262,17 @@ const packagingConsistency = await evaluate(`(async()=>{
   return result;
 })()`);
 
+// The settled heap has no fixed piece count — it stops when it has filled the
+// window — so it is checked against a density envelope instead. fillRatio guards
+// the sparse end (bare window background), crowdRatio the packed end (pieces
+// stacked too deep to read), and the cropped counts confirm it runs past every
+// edge rather than stopping neatly inside the window.
+const pileInvalid = (pile) => pile.name!=="Quantum Crisps"||pile.type!=="bag"||
+  pile.shapes<22||pile.shapes>56||pile.fillRatio<.93||pile.crowdRatio>.2||
+  pile.overlapMean<1.2||pile.overlapMean>4.5||pile.averagePieceSize<28||
+  pile.croppedSides<4||pile.croppedBottom<3||pile.croppedTop<1||pile.minTop>0||
+  pile.distinctCenters<16;
+
 if (process.argv.includes("--packaging-only")) {
   const packagingInvalid=packaging.packages.some(item=>!item.titleUniform||item.overlaps.length||
     item.containment.some(text=>!text.insidePackage||!text.insideDesign||!text.unclipped));
@@ -245,13 +280,9 @@ if (process.argv.includes("--packaging-only")) {
   console.log(JSON.stringify(report,null,2));
   socket.close();
   if(errors.length||initial.scripts.length!==6||initial.sheets.length!==2||initial.slots!==30||packagingInvalid||
-    packaging.engines.shape!=="1.0.1"||packaging.engines.packaging!=="1.0.0"||
+    packaging.engines.shape!=="1.1.0"||packaging.engines.packaging!=="1.0.0"||
     packaging.brawndo.slot!=="brawndo"||packaging.brawndo.type!=="can"||packaging.brawndo.coilWraps!==2||
-    packaging.replacement.name!=="Quantum Crisps"||packaging.replacement.type!=="bag"||packaging.replacement.shapes!==80||
-    packaging.replacement.maxDepth!==2||packaging.replacement.maxFootprintOccupancy!==2||packaging.replacement.averageCenterY<=34||
-    packaging.replacement.croppedBottom<1||packaging.replacement.croppedBottom>30||
-    packaging.replacement.croppedSides<2||packaging.replacement.croppedSides>25||packaging.replacement.distinctCenters<16||
-    packaging.replacement.averagePieceSize<38||
+    pileInvalid(packaging.replacement)||
     Object.values(packagingConsistency).some(item=>!item.consistent||!item.safe))
     process.exitCode=1;
 } else if (process.argv.includes("--change-overflow-only")) {
@@ -421,13 +452,9 @@ if (process.argv.includes("--packaging-only")) {
     item.containment.some(text=>!text.insidePackage||!text.insideDesign||!text.unclipped));
   const failed = errors.length || initial.sheets.length !== 2 || initial.scripts.length !== 6 ||
     initial.shelves !== 7 || initial.slots !== 30 || initial.assetRequests.length !== 0 ||
-    packaging.engines.shape!=="1.0.1" || packaging.engines.packaging!=="1.0.0" || packagingInvalid ||
+    packaging.engines.shape!=="1.1.0" || packaging.engines.packaging!=="1.0.0" || packagingInvalid ||
     packaging.brawndo.slot!=="brawndo" || packaging.brawndo.type!=="can" || packaging.brawndo.coilWraps!==2 ||
-    packaging.replacement.name!=="Quantum Crisps" || packaging.replacement.type!=="bag" || packaging.replacement.shapes!==80 ||
-    packaging.replacement.maxDepth!==2 || packaging.replacement.maxFootprintOccupancy!==2 || packaging.replacement.averageCenterY<=34 ||
-    packaging.replacement.croppedBottom<1 || packaging.replacement.croppedBottom>30 ||
-    packaging.replacement.croppedSides<2 || packaging.replacement.croppedSides>25 || packaging.replacement.distinctCenters<16 ||
-    packaging.replacement.averagePieceSize<38 ||
+    pileInvalid(packaging.replacement) ||
     Object.values(packagingConsistency).some(item=>!item.consistent||!item.safe) ||
     vendReady.tray !== "205" || !retrieved.reveal || persisted < 1 || !slimePainted ||
     Object.values(productEffects).some(value => value !== "ok") ||
