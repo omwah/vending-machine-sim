@@ -158,12 +158,24 @@ const packaging = await evaluate(`(()=>{
       layout:{packageWidth:packageElement.clientWidth,panelWidth:packageElement.querySelector('.spe-panel,.spe-label')?.clientWidth||0,
         brandWidth:brand?.clientWidth||0,brandScrollWidth:brand?.scrollWidth||0}};
   });
+  const replacementShapes=[...document.querySelectorAll('.slot[data-code="203"] svg[data-snack-type]')];
+  const footprintCounts=Object.values(replacementShapes.reduce((counts,shape)=>{
+    const footprint=shape.dataset.pileFootprint;counts[footprint]=(counts[footprint]||0)+1;return counts;
+  },{}));
+  const averageCenterY=replacementShapes.reduce((sum,shape)=>sum+Number(shape.getAttribute('y'))+Number(shape.getAttribute('height'))/2,0)/replacementShapes.length;
+  const centerYs=replacementShapes.map(shape=>Number(shape.getAttribute('y'))+Number(shape.getAttribute('height'))/2);
+  const averagePieceSize=replacementShapes.reduce((sum,shape)=>sum+Number(shape.getAttribute('width')),0)/replacementShapes.length;
+  const croppedBottom=replacementShapes.filter(shape=>Number(shape.getAttribute('y'))+Number(shape.getAttribute('height'))>78).length;
+  const croppedSides=replacementShapes.filter(shape=>Number(shape.getAttribute('x'))<0||
+    Number(shape.getAttribute('x'))+Number(shape.getAttribute('width'))>120).length;
   return {
     engines:{shape:SnackShapeEngine.version,packaging:SnackPackagingEngine.version},packages,
     brawndo:{slot:ITEMS['508']?.id,type:document.querySelector('.slot[data-code="508"] .spe-package')?.dataset.packageType,
       coilWraps:document.querySelectorAll('.slot[data-code="508"] .coilwrap').length},
     replacement:{name:ITEMS['203']?.name,type:document.querySelector('.slot[data-code="203"] .spe-package')?.dataset.packageType,
-      shapes:document.querySelectorAll('.slot[data-code="203"] svg[data-snack-type]').length}
+      shapes:replacementShapes.length,maxDepth:Math.max(...replacementShapes.map(shape=>Number(shape.dataset.pileDepth))),
+      maxFootprintOccupancy:Math.max(...footprintCounts),averageCenterY:+averageCenterY.toFixed(2),croppedBottom,
+      croppedSides,averagePieceSize:+averagePieceSize.toFixed(2),distinctCenters:new Set(centerYs.map(value=>value.toFixed(1))).size}
   };
 })()`);
 
@@ -235,7 +247,11 @@ if (process.argv.includes("--packaging-only")) {
   if(errors.length||initial.scripts.length!==6||initial.sheets.length!==2||initial.slots!==30||packagingInvalid||
     packaging.engines.shape!=="1.0.1"||packaging.engines.packaging!=="1.0.0"||
     packaging.brawndo.slot!=="brawndo"||packaging.brawndo.type!=="can"||packaging.brawndo.coilWraps!==2||
-    packaging.replacement.name!=="Quantum Crisps"||packaging.replacement.type!=="bag"||packaging.replacement.shapes!==13||
+    packaging.replacement.name!=="Quantum Crisps"||packaging.replacement.type!=="bag"||packaging.replacement.shapes!==80||
+    packaging.replacement.maxDepth!==2||packaging.replacement.maxFootprintOccupancy!==2||packaging.replacement.averageCenterY<=34||
+    packaging.replacement.croppedBottom<1||packaging.replacement.croppedBottom>30||
+    packaging.replacement.croppedSides<2||packaging.replacement.croppedSides>25||packaging.replacement.distinctCenters<16||
+    packaging.replacement.averagePieceSize<38||
     Object.values(packagingConsistency).some(item=>!item.consistent||!item.safe))
     process.exitCode=1;
 } else if (process.argv.includes("--change-overflow-only")) {
@@ -407,7 +423,11 @@ if (process.argv.includes("--packaging-only")) {
     initial.shelves !== 7 || initial.slots !== 30 || initial.assetRequests.length !== 0 ||
     packaging.engines.shape!=="1.0.1" || packaging.engines.packaging!=="1.0.0" || packagingInvalid ||
     packaging.brawndo.slot!=="brawndo" || packaging.brawndo.type!=="can" || packaging.brawndo.coilWraps!==2 ||
-    packaging.replacement.name!=="Quantum Crisps" || packaging.replacement.type!=="bag" || packaging.replacement.shapes!==13 ||
+    packaging.replacement.name!=="Quantum Crisps" || packaging.replacement.type!=="bag" || packaging.replacement.shapes!==80 ||
+    packaging.replacement.maxDepth!==2 || packaging.replacement.maxFootprintOccupancy!==2 || packaging.replacement.averageCenterY<=34 ||
+    packaging.replacement.croppedBottom<1 || packaging.replacement.croppedBottom>30 ||
+    packaging.replacement.croppedSides<2 || packaging.replacement.croppedSides>25 || packaging.replacement.distinctCenters<16 ||
+    packaging.replacement.averagePieceSize<38 ||
     Object.values(packagingConsistency).some(item=>!item.consistent||!item.safe) ||
     vendReady.tray !== "205" || !retrieved.reveal || persisted < 1 || !slimePainted ||
     Object.values(productEffects).some(value => value !== "ok") ||

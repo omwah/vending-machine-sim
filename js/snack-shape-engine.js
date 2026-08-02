@@ -639,34 +639,70 @@
     if (!typeEntry) throw new Error(`Unknown snack type: ${settings.type}`);
     const shapes = settings.shapes && settings.shapes.length ? settings.shapes : Object.keys(typeEntry.shapes);
     const random = randomFrom(`pile:${settings.seed}:${settings.type}`);
-    const rows = Math.max(2, Math.round(Math.sqrt(settings.count * settings.height / settings.width)));
-    const columns = Math.ceil(settings.count / rows);
+    // Treat every two pieces as one loose footprint: the second piece may lie
+    // over the first, but a footprint is never more than two snacks deep.
+    // Each vertical lane accumulates its own irregular height, producing one
+    // connected gravity-settled mass instead of quantized horizontal rows.
+    const footprintCount = Math.ceil(settings.count / 2);
+    const requestedColumns = Number(settings.columns);
+    const columns = Number.isFinite(requestedColumns) && requestedColumns >= 3
+      ? Math.round(requestedColumns)
+      : Math.max(3, Math.ceil(Math.sqrt(footprintCount * settings.width / settings.height) * 1.4));
     const cellWidth = (settings.width - settings.padding * 2) / columns;
-    const cellHeight = (settings.height - settings.padding * 2) / rows;
+    const packingSize = Math.min(cellWidth * 1.65, (settings.height - settings.padding * 2) * 0.34);
+    const nominalSize = packingSize * 3;
+    const horizontalInset = nominalSize * 0.25;
+    const packingWidth = Math.max(1, settings.width - horizontalInset * 2);
+    const packingCellWidth = packingWidth / columns;
+    const bottomAnchor = settings.height + nominalSize * 0.08;
+    const columnBottomYs = Array(columns).fill(bottomAnchor);
+    const columnLevels = Array(columns).fill(0);
+    const columnOrder = Array.from({ length: columns }, (_, index) => index);
+    for (let index = columnOrder.length - 1; index > 0; index -= 1) {
+      const swap = Math.floor(random() * (index + 1));
+      [columnOrder[index], columnOrder[swap]] = [columnOrder[swap], columnOrder[index]];
+    }
     const placements = [];
 
-    for (let index = 0; index < settings.count; index += 1) {
-      const row = Math.floor(index / columns);
-      const column = index % columns;
-      const depth = rows === 1 ? 1 : row / (rows - 1);
-      const shape = shapes[Math.floor(random() * shapes.length) % shapes.length];
-      const entry = shapeEntry(settings.type, shape);
-      const palette = settings.palettes && settings.palettes.length
-        ? settings.palettes[Math.floor(random() * settings.palettes.length) % settings.palettes.length]
-        : entry.palettes[Math.floor(random() * entry.palettes.length) % entry.palettes.length];
-      const size = Math.min(cellWidth * 1.35, cellHeight * 1.58) * (0.72 + depth * 0.36);
-      placements.push({
-        x: settings.padding + (column + 0.5) * cellWidth + (random() - 0.5) * cellWidth * 0.5,
-        y: settings.padding + (row + 0.5) * cellHeight + (random() - 0.5) * cellHeight * 0.34,
-        rotation: (random() - 0.5) * 46,
-        size,
-        shape,
-        palette,
-        seed: `${settings.seed}:${index}`
-      });
+    for (let footprint = 0; footprint < footprintCount; footprint += 1) {
+      const cycle = Math.floor(footprint / columns);
+      const column = columnOrder[(footprint + cycle * 3) % columns];
+      const stackLevel = columnLevels[column]++;
+      const size = nominalSize * (0.88 + random() * 0.24);
+      const baseX = horizontalInset + (column + 0.5) * packingCellWidth +
+        (random() - 0.5) * packingCellWidth * 0.72;
+      // Begin at the physical bottom edge, then advance this lane upward after
+      // each supported footprint. The bottom item is partially cropped by the
+      // window; every later item rests on the accumulated stack beneath it.
+      const baseY = columnBottomYs[column] - size * 0.5 + (random() - 0.5) * size * 0.06;
+      columnBottomYs[column] -= nominalSize * (0.3 + random() * 0.08);
+      const layers = Math.min(2, settings.count - footprint * 2);
+      for (let layer = 0; layer < layers; layer += 1) {
+        const index = footprint * 2 + layer;
+        const shape = shapes[Math.floor(random() * shapes.length) % shapes.length];
+        const entry = shapeEntry(settings.type, shape);
+        const palette = settings.palettes && settings.palettes.length
+          ? settings.palettes[Math.floor(random() * settings.palettes.length) % settings.palettes.length]
+          : entry.palettes[Math.floor(random() * entry.palettes.length) % entry.palettes.length];
+        placements.push({
+          x: baseX + (layer ? (random() - 0.5) * size * 0.32 : 0),
+          y: baseY - layer * size * (0.04 + random() * 0.1),
+          rotation: (random() - 0.5) * 68,
+          size: size * (0.94 + random() * 0.12),
+          shape,
+          palette,
+          seed: `${settings.seed}:${index}`,
+          footprint,
+          layer,
+          row: stackLevel,
+          column
+        });
+      }
     }
 
-    placements.sort((a, b) => a.y - b.y);
+    // Paint the lowest pieces first; supported pieces higher in the pile then
+    // overlap them, matching the visual depth of a gravity-settled mass.
+    placements.sort((a, b) => b.y - a.y || a.layer - b.layer);
     const pile = element("svg", {
       xmlns: SVG_NS,
       viewBox: `0 0 ${settings.width} ${settings.height}`,
@@ -687,6 +723,10 @@
       nested.setAttribute("x", placement.x - placement.size / 2);
       nested.setAttribute("y", placement.y - placement.size / 2);
       nested.setAttribute("transform", `rotate(${placement.rotation} ${placement.x} ${placement.y})`);
+      nested.setAttribute("data-pile-footprint", placement.footprint);
+      nested.setAttribute("data-pile-depth", placement.layer + 1);
+      nested.setAttribute("data-pile-row", placement.row);
+      nested.setAttribute("data-pile-column", placement.column);
       pile.appendChild(nested);
     });
     container.replaceChildren(pile);
