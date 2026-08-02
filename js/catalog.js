@@ -106,6 +106,16 @@ function enginePackage(options){
   return SnackPackagingEngine.create(options).outerHTML;
 }
 
+function afterMidnightArt(torn=false){
+  if(!globalThis.SnackPackagingEngine)throw new Error("SnackPackagingEngine is not loaded");
+  const packageElement=SnackPackagingEngine.create({type:"bag",code:"201",variant:"industrial",width:.5,
+    title:["AFTER","MIDNIGHT"],subtitle:"Smoked Jerky Sticks — Keep Dry",netWeight:"2.0 OZ",
+    colors:{primary:"#17131d",secondary:"#0d0a12",dark:"#030204",panel:"#261b2d",text:"#b9e94f",detail:"#ef5548"},
+    contents:{type:"savory",seed:201,shapes:["jerkyStick"],palettes:["jerkyBrown"],pieceScale:.58}});
+  if(torn)packageElement.classList.add("fx-torn");
+  return packageElement.outerHTML;
+}
+
 // shelf data ---------------------------------------------------
 // w/h are the on-shelf footprint in design px.
 const SHELVES = [
@@ -126,12 +136,14 @@ const SHELVES = [
         colors:{primary:"#269a9a",secondary:"#177779",dark:"#0b484c",panel:"#126568",text:"#fff0b8",detail:"#baf5e9"},
         contents:{type:"cookie",seed:105,shapes:["dogBone"],palettes:["lightBrown"]}})},
     {id:"stay-puft",effectId:"staypuft",clueId:"100",code:"107",price:150,name:"Stay Puft Marshmallows",w:88,h:92,
-      art:()=>bag({brand:"STAY PUFT",bs:11,flav:"Marshmallows — Soft &amp; Sweet",c1:"#f5f7f8",c2:"#d9e5ef",c3:"#94b7d1",tc:"#184d8d",fc:"#d32632",food:"pop",n:10,po:{w:29,rot:0},plight:1,oz:"1.8"})}
+      art:()=>enginePackage({type:"bag",code:"107",variant:"classic",width:.5,title:["STAY","PUFT"],
+        subtitle:"Marshmallows — Soft & Sweet",netWeight:"1.8 OZ",
+        colors:{primary:"#ffffff",secondary:"#f1f3f2",dark:"#cdd3d2",panel:"#ffffff",text:"#174f8f",detail:"#cf2935"},
+        contents:{type:"candy",seed:107,shapes:["marshmallow"],palettes:["marshmallowWhite"],pieceScale:.5}})}
   ],
   [ // 2xx — chips & popcorn
     {id:"after-midnight",effectId:"midnight",clueId:"000",code:"201",price:125,name:"After Midnight Bites",w:88,h:90,
-      art:()=>bag({brand:"AFTER",bs:14,flav:"MIDNIGHT BITES — Keep Dry",c1:"#16131f",c2:"#0c0a11",c3:"#030204",tc:"#b7e34c",fc:"#ef4b42",food:["cracker","nut"],n:9,po:{w:29},oz:"2.0"}),
-      trayArt:()=>{const wrap=document.createElement("div");wrap.innerHTML=bag({brand:"AFTER",bs:14,flav:"MIDNIGHT BITES — Keep Dry",c1:"#16131f",c2:"#0c0a11",c3:"#030204",tc:"#b7e34c",fc:"#ef4b42",food:["cracker","nut"],n:9,po:{w:29},oz:"2.0"});wrap.firstElementChild.classList.add("fx-torn");return wrap.innerHTML;}},
+      art:()=>afterMidnightArt(),trayArt:()=>afterMidnightArt(true)},
     {code:"203",price:150,name:"Quantum Crisps",w:88,h:90,
       art:()=>enginePackage({type:"bag",code:"203",variant:"industrial",title:["QUANTUM","CRISPS"],
         subtitle:"Every flavor at once",netWeight:"1.5 OZ",
