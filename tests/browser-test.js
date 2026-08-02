@@ -126,7 +126,119 @@ const initial = await evaluate(`({
   scale
 })`);
 
-if (process.argv.includes("--change-overflow-only")) {
+const packaging = await evaluate(`(()=>{
+  const within=(inner,outer,tolerance=.75)=>inner.left>=outer.left-tolerance&&inner.top>=outer.top-tolerance&&
+    inner.right<=outer.right+tolerance&&inner.bottom<=outer.bottom+tolerance;
+  const intersects=(a,b)=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>.75&&
+    Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>.75;
+  const packages=[...document.querySelectorAll('.itemholder>.spe-package')].map(packageElement=>{
+    const brand=packageElement.querySelector('.spe-brand');
+    const titleParts=brand?[brand,...brand.querySelectorAll('span')].filter((element,index,list)=>
+      (index===0&&!brand.querySelector('span'))||element!==brand):[];
+    const titleSizes=titleParts.map(element=>parseFloat(getComputedStyle(element).fontSize));
+    const textElements=[...packageElement.querySelectorAll('.spe-brand,.spe-subtitle,.spe-micro')]
+      .filter(element=>element.getBoundingClientRect().width&&element.getBoundingClientRect().height);
+    const packageRect=packageElement.getBoundingClientRect();
+    const containment=textElements.map(element=>{
+      const rect=element.getBoundingClientRect();
+      const design=element.closest('.spe-panel,.spe-label')||packageElement;
+      const designRect=design.getBoundingClientRect();
+      const glyphBoxes=[element,...element.querySelectorAll('span')];
+      return {className:element.className,insidePackage:within(rect,packageRect),insideDesign:within(rect,designRect),
+        unclipped:glyphBoxes.every(box=>box.scrollWidth<=box.clientWidth+1&&box.scrollHeight<=box.clientHeight+1),
+        overflow:{left:+(designRect.left-rect.left).toFixed(2),top:+(designRect.top-rect.top).toFixed(2),
+          right:+(rect.right-designRect.right).toFixed(2),bottom:+(rect.bottom-designRect.bottom).toFixed(2)}};
+    });
+    const overlaps=[];
+    textElements.forEach((first,index)=>textElements.slice(index+1).forEach(second=>{
+      if(intersects(first.getBoundingClientRect(),second.getBoundingClientRect()))overlaps.push([first.className,second.className]);
+    }));
+    return {code:packageElement.dataset.vendingCode,type:packageElement.dataset.packageType,titleSizes,
+      titleUniform:new Set(titleSizes.map(size=>size.toFixed(2))).size<=1,containment,overlaps,
+      layout:{packageWidth:packageElement.clientWidth,panelWidth:packageElement.querySelector('.spe-panel,.spe-label')?.clientWidth||0,
+        brandWidth:brand?.clientWidth||0,brandScrollWidth:brand?.scrollWidth||0}};
+  });
+  return {
+    engines:{shape:SnackShapeEngine.version,packaging:SnackPackagingEngine.version},packages,
+    brawndo:{slot:ITEMS['508']?.id,type:document.querySelector('.slot[data-code="508"] .spe-package')?.dataset.packageType,
+      coilWraps:document.querySelectorAll('.slot[data-code="508"] .coilwrap').length},
+    replacement:{name:ITEMS['203']?.name,type:document.querySelector('.slot[data-code="203"] .spe-package')?.dataset.packageType,
+      shapes:document.querySelectorAll('.slot[data-code="203"] svg[data-snack-type]').length}
+  };
+})()`);
+
+const packagingConsistency = await evaluate(`(async()=>{
+  const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+  const within=(inner,outer,tolerance=.75)=>inner.left>=outer.left-tolerance&&inner.top>=outer.top-tolerance&&
+    inner.right<=outer.right+tolerance&&inner.bottom<=outer.bottom+tolerance;
+  const intersects=(a,b)=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>.75&&
+    Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>.75;
+  const snapshot=packageElement=>{
+    const packageRect=packageElement.getBoundingClientRect();
+    const brand=packageElement.querySelector('.spe-brand');
+    const titleParts=brand?(brand.querySelectorAll('span').length?[...brand.querySelectorAll('span')]:[brand]):[];
+    const titleSizes=titleParts.map(element=>parseFloat(getComputedStyle(element).fontSize).toFixed(2));
+    const textElements=[...packageElement.querySelectorAll('.spe-brand,.spe-subtitle,.spe-micro')]
+      .filter(element=>element.getBoundingClientRect().width&&element.getBoundingClientRect().height);
+    const textSafe=textElements.every(element=>{
+      const rect=element.getBoundingClientRect(),design=element.closest('.spe-panel,.spe-label')||packageElement;
+      return within(rect,packageRect)&&within(rect,design.getBoundingClientRect())&&
+        element.scrollWidth<=element.clientWidth+1&&element.scrollHeight<=element.clientHeight+1;
+    })&&titleParts.every(element=>element.scrollWidth<=element.clientWidth+1&&element.scrollHeight<=element.clientHeight+1);
+    const overlaps=textElements.some((first,index)=>textElements.slice(index+1)
+      .some(second=>intersects(first.getBoundingClientRect(),second.getBoundingClientRect())));
+    const style=getComputedStyle(packageElement);
+    const geometry=textElements.map(element=>{
+      const rect=element.getBoundingClientRect();
+      return [rect.left-packageRect.left,rect.top-packageRect.top,rect.width,rect.height]
+        .map((value,index)=>+(value/(index%2?packageRect.height:packageRect.width)).toFixed(3));
+    });
+    return {type:packageElement.dataset.packageType,text:textElements.map(element=>element.textContent.trim()),
+      colors:['--spe-c1','--spe-c2','--spe-c3','--spe-panel','--spe-text','--spe-detail'].map(name=>style.getPropertyValue(name).trim()),
+      titleSizes,geometry,titleUniform:new Set(titleSizes).size<=1,textSafe,overlaps};
+  };
+  const codes=['203','508'],result={};
+  const revealStyle=reveal.getAttribute('style'),revealItemStyle=revealItem.getAttribute('style'),revealHtml=revealItem.innerHTML;
+  for(const code of codes){
+    const it=ITEMS[code],shelf=snapshot(document.querySelector('.slot[data-code="'+code+'"] .spe-package'));
+    reveal.style.display='grid';reveal.style.visibility='hidden';
+    revealItem.innerHTML=it.art();revealItem.style.width=(it.w*3)+'px';revealItem.style.height=(it.h*3)+'px';
+    const shownPackage=revealItem.firstElementChild;shownPackage.style.width='100%';shownPackage.style.height='100%';
+    fitEnginePackage(shownPackage,it.w*3,it.h*3);await frame();await frame();
+    result[code]={shelf,shown:snapshot(shownPackage)};
+  }
+  revealItem.innerHTML=revealHtml;
+  const restore=(element,name,value)=>value==null?element.removeAttribute(name):element.setAttribute(name,value);
+  restore(reveal,'style',revealStyle);restore(revealItem,'style',revealItemStyle);
+
+  const savedItems=JSON.parse(JSON.stringify(COLLECTION.items)),collectionStyle=collectionEl.getAttribute('style');
+  codes.forEach(code=>{const it=ITEMS[code];COLLECTION.items[it.id]={code,count:1,firstAt:new Date().toISOString()};});
+  renderCollection();collectionEl.style.display='grid';collectionEl.style.visibility='hidden';await frame();await frame();
+  codes.forEach(code=>{
+    result[code].inventory=snapshot(collectionGrid.querySelector('.spe-package[data-vending-code="'+code+'"]'));
+    const signature=context=>JSON.stringify({type:context.type,text:context.text,colors:context.colors,
+      titleSizes:context.titleSizes,geometry:context.geometry});
+    const contexts=[result[code].shelf,result[code].shown,result[code].inventory];
+    result[code].consistent=new Set(contexts.map(signature)).size===1;
+    result[code].safe=contexts.every(context=>context.titleUniform&&context.textSafe&&!context.overlaps);
+  });
+  COLLECTION.items=savedItems;renderCollection();restore(collectionEl,'style',collectionStyle);
+  return result;
+})()`);
+
+if (process.argv.includes("--packaging-only")) {
+  const packagingInvalid=packaging.packages.some(item=>!item.titleUniform||item.overlaps.length||
+    item.containment.some(text=>!text.insidePackage||!text.insideDesign||!text.unclipped));
+  const report={initial,packaging,packagingConsistency,errors};
+  console.log(JSON.stringify(report,null,2));
+  socket.close();
+  if(errors.length||initial.scripts.length!==6||initial.sheets.length!==2||initial.slots!==30||packagingInvalid||
+    packaging.engines.shape!=="1.0.1"||packaging.engines.packaging!=="1.0.0"||
+    packaging.brawndo.slot!=="brawndo"||packaging.brawndo.type!=="can"||packaging.brawndo.coilWraps!==2||
+    packaging.replacement.name!=="Quantum Crisps"||packaging.replacement.type!=="bag"||packaging.replacement.shapes!==13||
+    Object.values(packagingConsistency).some(item=>!item.consistent||!item.safe))
+    process.exitCode=1;
+} else if (process.argv.includes("--change-overflow-only")) {
   const startingGeometry = await evaluate(`(()=>{
     const machine=document.querySelector("#machine").getBoundingClientRect();
     const tray=document.querySelector("#cointray").getBoundingClientRect();
@@ -284,13 +396,19 @@ if (process.argv.includes("--change-overflow-only")) {
   const report = {
     initial, vendReady, retrieved, persisted, productEffects, secretResults,
     frames: { before: frameA, after: frameB }, slimePainted, glass, launch, vortex,
-    reducedMotion, narrow, wide, errors
+    reducedMotion, narrow, wide, packaging, packagingConsistency, errors
   };
   console.log(JSON.stringify(report, null, 2));
   socket.close();
 
-  const failed = errors.length || initial.sheets.length !== 1 || initial.scripts.length !== 4 ||
+  const packagingInvalid=packaging.packages.some(item=>!item.titleUniform||item.overlaps.length||
+    item.containment.some(text=>!text.insidePackage||!text.insideDesign||!text.unclipped));
+  const failed = errors.length || initial.sheets.length !== 2 || initial.scripts.length !== 6 ||
     initial.shelves !== 7 || initial.slots !== 30 || initial.assetRequests.length !== 0 ||
+    packaging.engines.shape!=="1.0.1" || packaging.engines.packaging!=="1.0.0" || packagingInvalid ||
+    packaging.brawndo.slot!=="brawndo" || packaging.brawndo.type!=="can" || packaging.brawndo.coilWraps!==2 ||
+    packaging.replacement.name!=="Quantum Crisps" || packaging.replacement.type!=="bag" || packaging.replacement.shapes!==13 ||
+    Object.values(packagingConsistency).some(item=>!item.consistent||!item.safe) ||
     vendReady.tray !== "205" || !retrieved.reveal || persisted < 1 || !slimePainted ||
     Object.values(productEffects).some(value => value !== "ok") ||
     Object.values(secretResults).some(value => value !== true) || frameA.count !== 11 ||

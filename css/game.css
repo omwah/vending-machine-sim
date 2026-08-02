@@ -733,6 +733,20 @@ body{
   filter:drop-shadow(0 5px 5px rgba(0,0,0,.65))}
 .pk *{position:absolute}
 
+/* The procedural engines are self-contained package layouts. Legacy snack art
+   makes every descendant absolute; engine title lines must remain in normal
+   flow so every word shares one computed size and cannot stack on itself. */
+.pk.spe-package .spe-brand span{position:static}
+.pk.spe-package .spe-window>svg{position:relative}
+.pk.spe-package.spe-can .spe-label{bottom:3px}
+.pk.spe-package.spe-can .spe-subtitle{left:4px;right:4px;top:66px;transform:none}
+.pk.spe-package.spe-fitted{
+  position:absolute!important;left:50%!important;bottom:0!important;
+  width:var(--spe-native-width)!important;height:var(--spe-native-height)!important;
+  transform:translateX(-50%) scale(var(--spe-display-scale)) rotate(var(--spe-display-rotation,0deg))!important;
+  transform-origin:50% 100%!important
+}
+
 /* --- pillow / chip bag --- */
 .bag{width:100%;height:100%}
 .bag .body{
@@ -1141,6 +1155,7 @@ body{
 #reveal.on{display:grid;animation:fadein .3s ease-out both}
 @keyframes fadein{from{opacity:0}}
 #revealitem{
+  position:relative;
   transform-origin:50% 55%;
   animation:comeforward 1.15s cubic-bezier(.16,.9,.24,1) both}
 @keyframes comeforward{
