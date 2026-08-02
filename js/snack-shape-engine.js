@@ -139,18 +139,22 @@
     return `#${[adjust(rgb.r), adjust(rgb.g), adjust(rgb.b)].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
   }
 
-  function resolvePalette(key, random) {
+  // `dim` (0..1) buries a piece: everything darkens toward black so pieces deep
+  // in a pile fall away from the light instead of reading as one flat layer.
+  function resolvePalette(key, random, dim) {
     const source = PALETTES[key] || PALETTES.butter;
     const colors = source.colors || [source.base];
     const base = colors[Math.floor(random() * colors.length) % colors.length];
+    const depth = dim ? -Math.round(Math.min(1, Math.max(0, dim)) * 78) : 0;
+    const bury = (hex) => (depth ? shade(hex, depth) : hex);
     return {
       key,
       label: source.label,
-      colors,
-      base,
-      light: source.light || shade(base, 46),
-      dark: source.dark || shade(base, -62),
-      accent: source.accent || shade(base, 70)
+      colors: depth ? colors.map(bury) : colors,
+      base: bury(base),
+      light: bury(source.light || shade(base, 46)),
+      dark: bury(source.dark || shade(base, -62)),
+      accent: bury(source.accent || shade(base, 70))
     };
   }
 
@@ -160,6 +164,27 @@
     let path = `M ${first[0]} ${first[1]}`;
     points.slice(1).forEach((point) => { path += ` L ${point[0]} ${point[1]}`; });
     return close ? `${path} Z` : path;
+  }
+
+  // Polygon with rounded corners, used where a piece needs a recognisable
+  // straight-edged silhouette that still varies from instance to instance.
+  function roundedPolygon(corners, radius) {
+    const toward = (from, to) => {
+      const dx = to[0] - from[0];
+      const dy = to[1] - from[1];
+      const length = Math.hypot(dx, dy) || 1;
+      const step = Math.min(radius, length * 0.42) / length;
+      return [+(from[0] + dx * step).toFixed(2), +(from[1] + dy * step).toFixed(2)];
+    };
+    let path = "";
+    corners.forEach((corner, index) => {
+      const previous = corners[(index - 1 + corners.length) % corners.length];
+      const next = corners[(index + 1) % corners.length];
+      const entry = toward(corner, previous);
+      const exit = toward(corner, next);
+      path += `${index ? " L" : "M"} ${entry[0]} ${entry[1]} Q ${corner[0].toFixed(2)} ${corner[1].toFixed(2)} ${exit[0]} ${exit[1]}`;
+    });
+    return `${path} Z`;
   }
 
   function smoothBlob(random, cx, cy, rx, ry, count = 18, jitter = 0.1) {
@@ -180,23 +205,58 @@
     return `${path} Z`;
   }
 
-  function materialDefs(svg, id, palette, material) {
+  // A piece is drawn in its own upright frame and then rotated into the pile, so
+  // every lighting cue has to be counter-rotated by that same angle. Otherwise
+  // each tumbled piece is lit from its own private direction and the pile stops
+  // reading as one scene under one light. Gradients use userSpaceOnUse (the
+  // piece's square 0..100 box) so the counter-rotation stays a true rotation
+  // instead of being skewed by each path's bounding box.
+  function counterRotate(x, y, radians) {
+    const dx = x - 50;
+    const dy = y - 50;
+    const cos = Math.cos(-radians);
+    const sin = Math.sin(-radians);
+    return [
+      +(50 + dx * cos - dy * sin).toFixed(2),
+      +(50 + dx * sin + dy * cos).toFixed(2)
+    ];
+  }
+
+  // Local offset that points straight down in world space once the piece has
+  // been rotated by `radians`. Used for both the cast shadow and the extruded
+  // edge, so a piece's thickness and its shadow always agree with gravity.
+  function worldDown(distance, radians) {
+    return [
+      +(distance * Math.sin(radians)).toFixed(2),
+      +(distance * Math.cos(radians)).toFixed(2)
+    ];
+  }
+
+  function materialDefs(svg, id, palette, material, radians) {
     const defs = element("defs");
-    const baseGradient = element("linearGradient", { id: `${id}-base`, x1: "18%", y1: "8%", x2: "82%", y2: "92%" });
+    const [x1, y1] = counterRotate(18, 8, radians);
+    const [x2, y2] = counterRotate(82, 92, radians);
+    const baseGradient = element("linearGradient", {
+      id: `${id}-base`, gradientUnits: "userSpaceOnUse", x1, y1, x2, y2
+    });
     append(baseGradient,
       element("stop", { offset: "0%", "stop-color": palette.light }),
       element("stop", { offset: "46%", "stop-color": palette.base }),
       element("stop", { offset: "100%", "stop-color": palette.dark })
     );
-    const gloss = element("radialGradient", { id: `${id}-gloss`, cx: "32%", cy: "24%", r: "78%" });
+    const [glossX, glossY] = counterRotate(32, 24, radians);
+    const gloss = element("radialGradient", {
+      id: `${id}-gloss`, gradientUnits: "userSpaceOnUse", cx: glossX, cy: glossY, r: 78
+    });
     append(gloss,
       element("stop", { offset: "0%", "stop-color": palette.light, "stop-opacity": material === "gummy" ? 0.95 : 0.78 }),
       element("stop", { offset: "32%", "stop-color": palette.base, "stop-opacity": material === "gummy" ? 0.82 : 1 }),
       element("stop", { offset: "100%", "stop-color": palette.dark, "stop-opacity": material === "gummy" ? 0.88 : 1 })
     );
-    const shadow = element("filter", { id: `${id}-shadow`, x: "-40%", y: "-40%", width: "180%", height: "190%" });
+    const [shadowX, shadowY] = worldDown(3.2, radians);
+    const shadow = element("filter", { id: `${id}-shadow`, x: "-45%", y: "-45%", width: "190%", height: "190%" });
     append(shadow,
-      element("feDropShadow", { dx: "0", dy: "3.2", stdDeviation: "2.6", "flood-color": "#000000", "flood-opacity": "0.48" })
+      element("feDropShadow", { dx: shadowX, dy: shadowY, stdDeviation: "2.6", "flood-color": "#000000", "flood-opacity": "0.48" })
     );
     append(defs, baseGradient, gloss, shadow);
     svg.appendChild(defs);
@@ -310,13 +370,27 @@
   }
 
   function renderTortillaTriangle(group, context) {
-    const body = "M 50 14 Q 55 18 58 26 L 87 77 Q 83 84 73 80 L 24 82 Q 13 79 20 69 L 43 23 Q 46 16 50 14 Z";
-    group.appendChild(element("path", { d: body, fill: context.fill, stroke: context.palette.dark, "stroke-width": 2.2 }));
+    // Scalene rather than equilateral, and re-drawn per piece, so a window full
+    // of triangles does not read as the same stamp repeated.
+    const corners = [];
+    for (let index = 0; index < 3; index += 1) {
+      const angle = -Math.PI / 2 + (Math.PI * 2 * index) / 3 + (context.random() - 0.5) * 0.5;
+      const reach = 40 * (0.85 + context.random() * 0.3);
+      corners.push([50 + Math.cos(angle) * reach, 52 + Math.sin(angle) * reach * 0.97]);
+    }
+    group.appendChild(element("path", {
+      d: roundedPolygon(corners, 8 + context.random() * 7),
+      fill: context.fill, stroke: context.palette.dark, "stroke-width": 2.2
+    }));
+    const middle = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const foldFrom = middle(corners[0], corners[1]);
+    const foldTo = middle(corners[1], corners[2]);
+    const edgeFrom = middle(corners[2], corners[0]);
     append(group,
-      element("path", { d: "M 49 21 Q 52 48 72 73", fill: "none", stroke: context.palette.light, "stroke-width": 3, opacity: 0.45 }),
-      element("path", { d: "M 27 73 Q 48 68 77 77", fill: "none", stroke: context.palette.dark, "stroke-width": 2, opacity: 0.34 })
+      element("path", { d: `M ${foldFrom[0].toFixed(2)} ${foldFrom[1].toFixed(2)} Q 50 52 ${foldTo[0].toFixed(2)} ${foldTo[1].toFixed(2)}`, fill: "none", stroke: context.palette.light, "stroke-width": 3, opacity: 0.45 }),
+      element("path", { d: `M ${edgeFrom[0].toFixed(2)} ${edgeFrom[1].toFixed(2)} Q 50 62 ${foldTo[0].toFixed(2)} ${foldTo[1].toFixed(2)}`, fill: "none", stroke: context.palette.dark, "stroke-width": 2, opacity: 0.34 })
     );
-    addSpecks(group, context, 16, { x: 27, y: 34, width: 48, height: 38 });
+    addSpecks(group, context, 14, { x: 30, y: 34, width: 42, height: 36 });
   }
 
   function renderPotatoSlice(group, context) {
@@ -376,9 +450,23 @@
   }
 
   function renderCornCurl(group, context) {
-    group.appendChild(element("path", { d: "M 25 28 C 78 14 82 62 52 69 C 30 74 24 59 35 50", fill: "none", stroke: context.palette.dark, "stroke-width": 24, "stroke-linecap": "round", opacity: 0.9 }));
-    group.appendChild(element("path", { d: "M 25 25 C 76 13 78 58 50 65 C 30 69 27 57 36 49", fill: "none", stroke: context.fill, "stroke-width": 20, "stroke-linecap": "round" }));
+    // One jittered spine drawn twice: a fat dark pass for the shaded underside
+    // and a thinner lit pass on top. Because the two passes share the same
+    // jittered control points the curl keeps a consistent thickness, and no two
+    // curls hook the same way.
+    const wobble = (amount) => (context.random() - 0.5) * amount;
+    const spine = `M ${(25 + wobble(7)).toFixed(2)} ${(26 + wobble(7)).toFixed(2)}` +
+      ` C ${(76 + wobble(10)).toFixed(2)} ${(14 + wobble(7)).toFixed(2)}` +
+      ` ${(80 + wobble(9)).toFixed(2)} ${(59 + wobble(9)).toFixed(2)}` +
+      ` ${(51 + wobble(9)).toFixed(2)} ${(66 + wobble(7)).toFixed(2)}` +
+      ` C ${(30 + wobble(6)).toFixed(2)} ${(71 + wobble(6)).toFixed(2)}` +
+      ` ${(25 + wobble(6)).toFixed(2)} ${(58 + wobble(6)).toFixed(2)}` +
+      ` ${(35 + wobble(6)).toFixed(2)} ${(49 + wobble(6)).toFixed(2)}`;
+    const [dx, dy] = worldDown(2.6, context.radians);
+    group.appendChild(element("path", { d: spine, transform: `translate(${dx} ${dy})`, fill: "none", stroke: context.palette.dark, "stroke-width": 24, "stroke-linecap": "round", opacity: 0.9 }));
+    group.appendChild(element("path", { d: spine, fill: "none", stroke: context.fill, "stroke-width": 20, "stroke-linecap": "round" }));
     addSpecks(group, context, 13, { x: 26, y: 25, width: 48, height: 41 });
+    context.edged = true;
   }
 
   function renderLentil(group, context) {
@@ -595,12 +683,32 @@
     return entry;
   }
 
+  // Materials that are drawn as a single solid body get a free extruded edge: a
+  // dark copy of the body offset in the direction of gravity, which gives the
+  // piece a visible thickness instead of leaving it paper flat. Multi-part
+  // materials (gummy bears, clusters, ropes) draw a limb first, so they opt out.
+  const EXTRUDED_MATERIALS = Object.freeze(["baked", "fried", "hard", "soft", "chocolate"]);
+
+  function addExtrudedEdge(group, palette, radians) {
+    const body = group.firstElementChild;
+    if (!body) return;
+    const [dx, dy] = worldDown(1.5, radians);
+    const edge = body.cloneNode(false);
+    edge.removeAttribute("opacity");
+    edge.setAttribute("transform", `translate(${dx} ${dy})`);
+    if (edge.getAttribute("fill") !== "none") edge.setAttribute("fill", palette.dark);
+    const stroke = edge.getAttribute("stroke");
+    if (stroke && stroke !== "none") edge.setAttribute("stroke", palette.dark);
+    group.insertBefore(edge, body);
+  }
+
   function create(options) {
-    const settings = { type: "cookie", shape: "roundDrop", seed: 1, size: 100, ...options };
+    const settings = { type: "cookie", shape: "roundDrop", seed: 1, size: 100, rotation: 0, dim: 0, ...options };
     const entry = shapeEntry(settings.type, settings.shape);
     const random = randomFrom(`${settings.seed}:${settings.type}:${settings.shape}`);
     const paletteKey = entry.palettes.includes(settings.palette) ? settings.palette : entry.palettes[Math.floor(random() * entry.palettes.length)];
-    const palette = resolvePalette(paletteKey, random);
+    const palette = resolvePalette(paletteKey, random, settings.dim);
+    const radians = ((Number(settings.rotation) || 0) * Math.PI) / 180;
     const id = `snack-${++instanceId}`;
     const svg = element("svg", {
       xmlns: SVG_NS,
@@ -615,10 +723,11 @@
       "data-snack-palette": paletteKey,
       style: "overflow:visible"
     });
-    const material = materialDefs(svg, id, palette, entry.material);
+    const material = materialDefs(svg, id, palette, entry.material, radians);
     const group = element("g", { filter: material.shadow });
-    const context = { random, palette, fill: material.fill, id, material: entry.material, settings };
+    const context = { random, palette, fill: material.fill, id, material: entry.material, radians, settings };
     RENDERERS[settings.shape](group, context);
+    if (!context.edged && EXTRUDED_MATERIALS.includes(entry.material)) addExtrudedEdge(group, palette, radians);
     svg.appendChild(group);
     return svg;
   }
@@ -631,102 +740,184 @@
     return snack;
   }
 
+  // A piece's ink covers roughly the middle of its square box and is wider than
+  // it is tall. Approximating it as an ellipse gives the settle a cheap, stable
+  // collision proxy; these ratios are what the pile's density metrics assume.
+  const INK_RADIUS_X = 0.36;
+  const INK_RADIUS_Y = 0.3;
+
+  function inkFootprint(size, rotation) {
+    const radians = (rotation * Math.PI) / 180;
+    const rx = size * INK_RADIUS_X;
+    const ry = size * INK_RADIUS_Y;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    return { rx, ry, hw: Math.hypot(rx * cos, ry * sin), hh: Math.hypot(rx * sin, ry * cos) };
+  }
+
+  const PILE_DEFAULTS = Object.freeze({
+    type: "cookie",
+    seed: 1,
+    width: 120,
+    height: 72,
+    pieceScale: 0.48,
+    nest: 0.7,
+    sink: 0.2,
+    fill: 1,
+    spread: 0.5,
+    maxCount: 90
+  });
+
+  /**
+   * Fill a container with a gravity-settled heap of pieces.
+   *
+   * Pieces are dropped one at a time onto a 1-D height field. Each piece falls
+   * until its ink ellipse touches the surface, sinks slightly into whatever it
+   * landed on, then slides downhill so the heap grows an angle of repose rather
+   * than towers. Dropping stops when the surface has risen past the top edge,
+   * so density is set by `sink` and `pieceScale` and the piece count is an
+   * outcome rather than a number that has to be hand-tuned per product.
+   *
+   * The field is wider than the viewBox on both sides and its floor sits below
+   * the bottom edge, so the heap runs past all four edges and is cropped by the
+   * packaging window instead of stopping short of it.
+   */
   function renderPile(target, options) {
     const container = typeof target === "string" ? document.querySelector(target) : target;
     if (!container) throw new Error("SnackShapeEngine.renderPile target was not found");
-    const settings = { type: "cookie", seed: 1, count: 18, width: 720, height: 300, padding: 28, ...options };
+    const settings = { ...PILE_DEFAULTS, ...options };
     const typeEntry = CATALOG[settings.type];
     if (!typeEntry) throw new Error(`Unknown snack type: ${settings.type}`);
     const shapes = settings.shapes && settings.shapes.length ? settings.shapes : Object.keys(typeEntry.shapes);
     const random = randomFrom(`pile:${settings.seed}:${settings.type}`);
-    // Treat every two pieces as one loose footprint: the second piece may lie
-    // over the first, but a footprint is never more than two snacks deep.
-    // Each vertical lane accumulates its own irregular height, producing one
-    // connected gravity-settled mass instead of quantized horizontal rows.
-    const footprintCount = Math.ceil(settings.count / 2);
-    const requestedColumns = Number(settings.columns);
-    const columns = Number.isFinite(requestedColumns) && requestedColumns >= 3
-      ? Math.round(requestedColumns)
-      : Math.max(3, Math.ceil(Math.sqrt(footprintCount * settings.width / settings.height) * 1.4));
-    const cellWidth = (settings.width - settings.padding * 2) / columns;
-    const packingSize = Math.min(cellWidth * 1.65, (settings.height - settings.padding * 2) * 0.34);
-    const nominalSize = packingSize * 3;
-    const horizontalInset = nominalSize * 0.25;
-    const packingWidth = Math.max(1, settings.width - horizontalInset * 2);
-    const packingCellWidth = packingWidth / columns;
-    const bottomAnchor = settings.height + nominalSize * 0.08;
-    const columnBottomYs = Array(columns).fill(bottomAnchor);
-    const columnLevels = Array(columns).fill(0);
-    const columnOrder = Array.from({ length: columns }, (_, index) => index);
-    for (let index = columnOrder.length - 1; index > 0; index -= 1) {
-      const swap = Math.floor(random() * (index + 1));
-      [columnOrder[index], columnOrder[swap]] = [columnOrder[swap], columnOrder[index]];
-    }
+
+    const nominalSize = settings.height * settings.pieceScale;
+    const limit = Math.max(1, Math.round(settings.maxCount));
+    const margin = nominalSize * settings.spread;
+    const originX = -margin;
+    const span = settings.width + margin * 2;
+    const bins = Math.max(24, Math.round(span / 1.5));
+    const binWidth = span / bins;
+    const terrain = new Array(bins).fill(settings.height + nominalSize * 0.16);
+    const binAt = (x) => Math.min(bins - 1, Math.max(0, Math.floor((x - originX) / binWidth)));
+    // Stop once the mean surface inside the window has risen just past the top
+    // edge: the heap then crops at the top instead of showing a headspace band.
+    const fullLine = settings.height * (1 - settings.fill) - nominalSize * 0.1;
+    const firstInside = binAt(0);
+    const lastInside = binAt(settings.width);
+
+    // Resting on the single highest bin under the footprint would let one spike
+    // hold a piece up, and heaps built that way grow towers with daylight
+    // between the pieces. Instead a piece cuts through the highest `nest`
+    // fraction of the surface below it and comes to rest on the rest of it,
+    // which is what makes real snacks slot into each other's gaps.
+    const supportUnder = (x, reach) => {
+      const heights = [];
+      for (let bin = binAt(x - reach); bin <= binAt(x + reach); bin += 1) heights.push(terrain[bin]);
+      heights.sort((a, b) => a - b);
+      return heights[Math.min(heights.length - 1, Math.floor(heights.length * settings.nest))];
+    };
+    const meanSurface = () => {
+      let total = 0;
+      for (let bin = firstInside; bin <= lastInside; bin += 1) total += terrain[bin];
+      return total / (lastInside - firstInside + 1);
+    };
+
     const placements = [];
+    for (let index = 0; index < limit; index += 1) {
+      if (index >= 6 && meanSurface() <= fullLine) break;
+      const shape = shapes[Math.floor(random() * shapes.length) % shapes.length];
+      const entry = shapeEntry(settings.type, shape);
+      const palette = settings.palettes && settings.palettes.length
+        ? settings.palettes[Math.floor(random() * settings.palettes.length) % settings.palettes.length]
+        : entry.palettes[Math.floor(random() * entry.palettes.length) % entry.palettes.length];
+      const size = nominalSize * (0.86 + random() * 0.3);
+      const rotation = +((random() * 2 - 1) * 75).toFixed(2);
+      const ink = inkFootprint(size, rotation);
+      const sink = ink.hh * settings.sink * (0.8 + random() * 0.4);
+      const rough = (random() - 0.5) * nominalSize * 0.06;
 
-    for (let footprint = 0; footprint < footprintCount; footprint += 1) {
-      const cycle = Math.floor(footprint / columns);
-      const column = columnOrder[(footprint + cycle * 3) % columns];
-      const stackLevel = columnLevels[column]++;
-      const size = nominalSize * (0.88 + random() * 0.24);
-      const baseX = horizontalInset + (column + 0.5) * packingCellWidth +
-        (random() - 0.5) * packingCellWidth * 0.72;
-      // Begin at the physical bottom edge, then advance this lane upward after
-      // each supported footprint. The bottom item is partially cropped by the
-      // window; every later item rests on the accumulated stack beneath it.
-      const baseY = columnBottomYs[column] - size * 0.5 + (random() - 0.5) * size * 0.06;
-      columnBottomYs[column] -= nominalSize * (0.3 + random() * 0.08);
-      const layers = Math.min(2, settings.count - footprint * 2);
-      for (let layer = 0; layer < layers; layer += 1) {
-        const index = footprint * 2 + layer;
-        const shape = shapes[Math.floor(random() * shapes.length) % shapes.length];
-        const entry = shapeEntry(settings.type, shape);
-        const palette = settings.palettes && settings.palettes.length
-          ? settings.palettes[Math.floor(random() * settings.palettes.length) % settings.palettes.length]
-          : entry.palettes[Math.floor(random() * entry.palettes.length) % entry.palettes.length];
-        placements.push({
-          x: baseX + (layer ? (random() - 0.5) * size * 0.32 : 0),
-          y: baseY - layer * size * (0.04 + random() * 0.1),
-          rotation: (random() - 0.5) * 68,
-          size: size * (0.94 + random() * 0.12),
-          shape,
-          palette,
-          seed: `${settings.seed}:${index}`,
-          footprint,
-          layer,
-          row: stackLevel,
-          column
-        });
+      // Aim at the lowest of a few candidate drop points. A bag is filled and
+      // then shaken down, so pieces end up finding the hollows rather than
+      // landing uniformly; without this the heap crowns in the middle and
+      // leaves the top corners of the window bare.
+      let x = originX + random() * span;
+      let lowest = supportUnder(x, ink.hw);
+      for (let attempt = 1; attempt < 3; attempt += 1) {
+        const candidate = originX + random() * span;
+        const support = supportUnder(candidate, ink.hw);
+        if (support > lowest) { lowest = support; x = candidate; }
       }
+      let y = 0;
+      for (let pass = 0; pass < 3; pass += 1) {
+        y = supportUnder(x, ink.hw) - ink.hh + sink;
+        if (pass === 2) break;
+        // Slide toward whichever half of the footprint is sitting lower.
+        const half = ink.hw * 0.5;
+        const slope = supportUnder(x + half, half) - supportUnder(x - half, half);
+        x += Math.max(-half * 1.2, Math.min(half * 1.2, slope * 0.35));
+      }
+      x = Math.max(originX, Math.min(originX + span, x));
+
+      let buried = 0;
+      placements.forEach((other) => {
+        const dx = (other.x - x) / (other.ink.hw + ink.hw);
+        const dy = (other.y - y) / (other.ink.hh + ink.hh);
+        if (dx * dx + dy * dy < 1) buried += 1;
+      });
+
+      const startBin = binAt(x - ink.hw);
+      const endBin = binAt(x + ink.hw);
+      for (let bin = startBin; bin <= endBin; bin += 1) {
+        const offset = (originX + (bin + 0.5) * binWidth - x) / Math.max(ink.hw, 0.001);
+        const dome = Math.sqrt(Math.max(0, 1 - offset * offset)) * ink.hh * 0.8;
+        const top = y - dome + rough * Math.sin(bin * 1.7);
+        if (top < terrain[bin]) terrain[bin] = top;
+      }
+
+      placements.push({ x, y, size, rotation, ink, shape, palette, buried, covered: 0, seed: `${settings.seed}:${index}` });
     }
 
-    // Paint the lowest pieces first; supported pieces higher in the pile then
-    // overlap them, matching the visual depth of a gravity-settled mass.
-    placements.sort((a, b) => b.y - a.y || a.layer - b.layer);
     const pile = element("svg", {
       xmlns: SVG_NS,
       viewBox: `0 0 ${settings.width} ${settings.height}`,
       width: "100%",
+      // Cover and crop. With `meet` the heap would letterbox inside a window of
+      // a different aspect and leave bare gutters down both sides.
+      preserveAspectRatio: "xMidYMid slice",
       role: "img",
       "aria-label": `${typeEntry.label} shape pile`,
       style: "display:block;overflow:hidden"
     });
+    // Painted in the order they were dropped, so later pieces occlude the ones
+    // they came to rest on. Shading is measured against the finished surface of
+    // the heap rather than against drop order: a piece is darkened by how far
+    // below the crest it ended up, so anything still in daylight stays lit no
+    // matter how early it landed.
+    const shadeDepth = nominalSize * 0.8;
     placements.forEach((placement) => {
+      const exposure = placement.y - placement.ink.hh - terrain[binAt(placement.x)];
+      placement.covered = Math.max(0, exposure);
+    });
+    placements.forEach((placement, index) => {
+      const dim = +(Math.min(1, placement.covered / shadeDepth) * 0.4).toFixed(3);
       const nested = create({
         type: settings.type,
         shape: placement.shape,
         palette: placement.palette,
         seed: placement.seed,
         size: placement.size,
+        rotation: placement.rotation,
+        dim,
         decorative: true
       });
-      nested.setAttribute("x", placement.x - placement.size / 2);
-      nested.setAttribute("y", placement.y - placement.size / 2);
-      nested.setAttribute("transform", `rotate(${placement.rotation} ${placement.x} ${placement.y})`);
-      nested.setAttribute("data-pile-footprint", placement.footprint);
-      nested.setAttribute("data-pile-depth", placement.layer + 1);
-      nested.setAttribute("data-pile-row", placement.row);
-      nested.setAttribute("data-pile-column", placement.column);
+      nested.setAttribute("x", +(placement.x - placement.size / 2).toFixed(2));
+      nested.setAttribute("y", +(placement.y - placement.size / 2).toFixed(2));
+      nested.setAttribute("transform", `rotate(${placement.rotation} ${placement.x.toFixed(2)} ${placement.y.toFixed(2)})`);
+      nested.setAttribute("data-pile-index", index);
+      nested.setAttribute("data-pile-depth", placement.buried);
+      nested.setAttribute("data-pile-rotation", placement.rotation);
+      nested.setAttribute("data-pile-ink", `${placement.ink.rx.toFixed(2)},${placement.ink.ry.toFixed(2)}`);
       pile.appendChild(nested);
     });
     container.replaceChildren(pile);
@@ -742,7 +933,7 @@
   }
 
   global.SnackShapeEngine = Object.freeze({
-    version: "1.0.1",
+    version: "1.1.0",
     catalog: CATALOG,
     palettes: PALETTES,
     create,
