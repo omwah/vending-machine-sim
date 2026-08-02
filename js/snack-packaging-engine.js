@@ -77,6 +77,7 @@
       contents: { type: "cookie", seed: 105 }
     },
     bar: {
+      variant: "diagonal",
       brand: "NIGHT BAR",
       subtitle: "Caramel · nougat",
       netWeight: "1.86 OZ",
@@ -164,10 +165,35 @@
 .spe-bar .spe-seal-top{top:0}.spe-bar .spe-seal-bottom{bottom:0}
 .spe-bar .spe-stripe{position:absolute;z-index:8;left:-22%;right:-22%;top:20%;height:34%;transform:rotate(-8deg);background:linear-gradient(#fff3,#0002),var(--spe-panel);box-shadow:0 2px 4px #0006}
 .spe-bar .spe-brand{left:3%;right:3%;top:27%;color:var(--spe-text);font-size:15px;white-space:nowrap;transform:rotate(-8deg)}
+.spe-bar .spe-brand span{display:block;white-space:nowrap}
 .spe-bar .spe-subtitle{left:7%;right:7%;top:49%;color:var(--spe-detail);white-space:nowrap}
 .spe-bar .spe-cutaway{position:absolute;z-index:9;left:14%;right:14%;top:60%;bottom:8%;border-radius:3px;background:linear-gradient(90deg,#5a2d10 0 10%,#d6a75d 11% 24%,#5a2d10 25% 38%,#d6a75d 39% 52%,#5a2d10 53% 66%,#d6a75d 67% 80%,#5a2d10 81%),#53280e;box-shadow:0 2px 4px #000b,inset 0 0 0 2px #8a4c24}
 .spe-bar .spe-micro{right:8%;bottom:2%}
 .spe-bar .spe-shine{background:linear-gradient(105deg,#fff5 0 7%,#fff0 23% 71%,#fff2 78%,#fff0 90%)}
+.spe-bar.spe-dots .spe-shell::before{content:"";position:absolute;inset:8px 5px;background:radial-gradient(circle,var(--spe-detail) 0 2px,transparent 2.5px) 0 0/12px 12px;opacity:.42}
+.spe-bar.spe-dots .spe-stripe{left:7%;right:7%;top:18%;height:48%;transform:none;border:2px solid var(--spe-detail);border-radius:45% 45% 12% 12%;background:linear-gradient(155deg,var(--spe-panel),color-mix(in srgb,var(--spe-panel),#000 46%))}
+.spe-bar.spe-dots .spe-brand{top:29%;transform:none;font-size:13px}
+.spe-bar.spe-dots .spe-subtitle{top:54%}
+.spe-bar.spe-biomech .spe-shell::before{content:"";position:absolute;inset:8px 4px;background:repeating-radial-gradient(ellipse at 50% 48%,transparent 0 7px,#0007 8px 10px,transparent 11px 15px);opacity:.75}
+.spe-bar.spe-biomech .spe-stripe{left:13%;right:13%;top:13%;height:66%;transform:none;border:1px solid var(--spe-detail);border-radius:50% 18% 48% 20%;background:linear-gradient(90deg,#0007,var(--spe-panel),#0008)}
+.spe-bar.spe-biomech .spe-brand{top:29%;transform:none;font-size:13px;letter-spacing:-.08em}
+.spe-bar.spe-biomech .spe-subtitle{top:55%}
+.spe-bar.spe-circuit .spe-shell::before{content:"";position:absolute;inset:9px 5px;background:linear-gradient(90deg,transparent 44%,var(--spe-detail) 45% 48%,transparent 49%) 0 0/18px 19px,linear-gradient(transparent 45%,var(--spe-detail) 46% 49%,transparent 50%) 0 0/18px 19px;opacity:.48}
+.spe-bar.spe-circuit .spe-stripe{left:-3%;right:-3%;top:27%;height:25%;transform:none;border-top:2px solid var(--spe-detail);border-bottom:2px solid var(--spe-detail);background:var(--spe-panel)}
+.spe-bar.spe-circuit .spe-brand{top:32%;transform:none;font-size:13px}
+.spe-bar.spe-circuit .spe-subtitle{top:55%}
+.spe-bar.spe-heraldic .spe-shell::before{content:"";position:absolute;left:11px;right:11px;top:12px;height:16px;border:2px solid var(--spe-detail);border-radius:50%;opacity:.7}
+.spe-bar.spe-heraldic .spe-stripe{left:9%;right:9%;top:16%;height:61%;transform:none;clip-path:polygon(50% 0,94% 16%,87% 72%,50% 100%,13% 72%,6% 16%);background:linear-gradient(90deg,color-mix(in srgb,var(--spe-panel),#000 28%),var(--spe-panel),color-mix(in srgb,var(--spe-panel),#000 28%))}
+.spe-bar.spe-heraldic .spe-brand{top:31%;transform:none;font-family:Georgia,serif;font-size:13px}
+.spe-bar.spe-heraldic .spe-subtitle{top:55%}
+.spe-bar.spe-occult .spe-shell::before{content:"";position:absolute;left:8px;right:8px;top:10px;bottom:10px;border:1px solid var(--spe-detail);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);opacity:.45}
+.spe-bar.spe-occult .spe-stripe{left:4%;right:4%;top:18%;height:55%;transform:none;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:radial-gradient(circle,var(--spe-panel) 0 28%,color-mix(in srgb,var(--spe-panel),#000 48%) 30% 100%)}
+.spe-bar.spe-occult .spe-brand{top:34%;transform:none;font-family:Georgia,serif;font-size:11px}
+.spe-bar.spe-occult .spe-subtitle{top:56%}
+.spe-bar.spe-stakes .spe-shell::before{content:"";position:absolute;inset:8px 4px;background:repeating-linear-gradient(155deg,transparent 0 8px,var(--spe-detail) 9px 11px,transparent 12px 20px);opacity:.42}
+.spe-bar.spe-stakes .spe-stripe{left:8%;right:8%;top:20%;height:49%;transform:none;clip-path:polygon(50% 0,100% 18%,86% 100%,14% 100%,0 18%);background:linear-gradient(160deg,var(--spe-panel),color-mix(in srgb,var(--spe-panel),#000 45%))}
+.spe-bar.spe-stakes .spe-brand{top:31%;transform:none;font-size:11px}
+.spe-bar.spe-stakes .spe-subtitle{top:54%}
 
 /* Aluminum can: top is visible; the base is only a thin rim, never a second ellipse. */
 .spe-can{width:78px;height:128px;border-radius:13px/9px;transform-style:preserve-3d}
@@ -280,7 +306,8 @@
   }
 
   function addCommonText(root, settings, type) {
-    const brand = settings.brand || (Array.isArray(settings.title) ? settings.title.join(" ") : settings.title) || "Snack";
+    const suppliedBrand = settings.brand || settings.title;
+    const brand = (Array.isArray(suppliedBrand) ? suppliedBrand.join(" ") : suppliedBrand) || "Snack";
     root.setAttribute("role", "img");
     root.setAttribute("aria-label", `${brand} ${type} package`);
   }
@@ -398,11 +425,14 @@
 
   function buildBar(settings) {
     const root = prepareRoot("bar", settings);
+    root.classList.add(`spe-${["diagonal", "dots", "biomech", "circuit", "heraldic", "occult", "stakes"].includes(settings.variant) ? settings.variant : "diagonal"}`);
     make("i", "spe-shell", root);
     make("i", "spe-seal spe-seal-top", root);
     make("i", "spe-seal spe-seal-bottom", root);
     make("i", "spe-stripe", root);
-    make("b", "spe-brand", root, settings.brand);
+    const brand = make("b", "spe-brand", root);
+    const lines = Array.isArray(settings.brand) ? settings.brand : [settings.brand];
+    lines.forEach((line) => make("span", "", brand, line));
     make("span", "spe-subtitle", root, settings.subtitle);
     if (settings.cutaway !== false) make("i", "spe-cutaway", root);
     make("small", "spe-micro", root, `NET WT ${settings.netWeight}`);
@@ -484,7 +514,7 @@
       panel.querySelectorAll(".spe-subtitle").forEach((element) =>
         fitOne(element, Math.max(1, element.clientWidth), 3));
     });
-    root.querySelectorAll(".spe-label,.spe-package").forEach((container) => {
+    [root, ...root.querySelectorAll(".spe-label,.spe-package")].forEach((container) => {
       container.querySelectorAll(":scope > .spe-brand,:scope > .spe-subtitle").forEach((element) => {
         fitOne(element, Math.max(1, element.clientWidth), 3);
       });
