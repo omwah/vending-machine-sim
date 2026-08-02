@@ -238,7 +238,6 @@ const EFFECTS={
     await ctx.delay(2050);
   }},
   brawndo:{async preFall(ctx){
-    ctx.active.skipPackageFall=true;
     const hr=ctx.holder.getBoundingClientRect(),gr=glassEl.getBoundingClientRect();
     const stream=document.createElement("i");stream.className="fx-stream brawndo-stream";
     stream.style.left=((hr.left-gr.left+hr.width*.52)/scale)+"px";
