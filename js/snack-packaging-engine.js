@@ -17,6 +17,9 @@
     pouch: "pouch",
     standup: "pouch",
     standUpPouch: "pouch",
+    box: "box",
+    carton: "box",
+    snackBox: "box",
     bar: "bar",
     wrapper: "bar",
     flowWrapper: "bar",
@@ -33,6 +36,7 @@
   const DIMENSIONS = Object.freeze({
     bag: { width: 92, maxWidth: 129, height: 126 },
     pouch: { width: 90, maxWidth: 126, height: 126 },
+    box: { width: 100, maxWidth: 129, height: 126 },
     bar: { width: 66, maxWidth: 92, height: 128 },
     can: { width: 78, maxWidth: 78, height: 128 }
   });
@@ -42,7 +46,8 @@
   // the window's true aspect at whatever width the package ended up.
   const WINDOW_INSET = Object.freeze({
     bag: { width: 0.78, height: 0.34 },
-    pouch: { width: 0.9, height: 0.5 }
+    pouch: { width: 0.9, height: 0.5 },
+    box: { width: 0.72, height: 0.39 }
   });
 
   // Width of a generated contents heap in its own user units.
@@ -63,6 +68,13 @@
       netWeight: "2.25 OZ",
       colors: { primary: "#e0aa32", secondary: "#9f5d17", dark: "#3c240d", panel: "#bb741d", text: "#4b2809", detail: "#f8e9c0" },
       contents: { type: "candy", seed: 403 }
+    },
+    box: {
+      brand: "SNACK BOX",
+      subtitle: "Baked treats",
+      netWeight: "2.0 OZ",
+      colors: { primary: "#268f91", secondary: "#17676c", dark: "#0a373d", panel: "#12575c", text: "#fff3ca", detail: "#b9f3e8" },
+      contents: { type: "cookie", seed: 105 }
     },
     bar: {
       brand: "NIGHT BAR",
@@ -129,6 +141,21 @@
 .spe-pouch .spe-window{position:absolute;z-index:6;left:5%;right:5%;top:46%;bottom:4%;overflow:hidden;border-radius:5px;background:linear-gradient(#342312,#171009);box-shadow:inset 0 0 9px #000}
 .spe-pouch .spe-micro{right:7%;bottom:2%}
 .spe-pouch .spe-shine{background:linear-gradient(105deg,#fff5 0 6%,#fff0 27% 64%,#fff3 72%,#fff0 87%)}
+
+/* Paperboard snack carton */
+.spe-box{width:100px;height:126px;overflow:visible}
+.spe-box .spe-shell{right:8px;border:1px solid color-mix(in srgb,var(--spe-c3),#000 28%);border-radius:2px;background:linear-gradient(104deg,#fff4 0 5%,#fff0 22% 76%,#0003 100%),linear-gradient(178deg,var(--spe-c1),var(--spe-c2) 64%,var(--spe-c3));box-shadow:inset 0 0 0 1px #fff3,inset -5px 0 9px #0003,0 3px 4px #0008}
+.spe-box .spe-side{position:absolute;z-index:2;right:0;top:7px;bottom:2px;width:9px;clip-path:polygon(0 0,100% 6%,100% 100%,0 100%);background:linear-gradient(90deg,var(--spe-c3),color-mix(in srgb,var(--spe-c3),#000 42%));box-shadow:inset 1px 0 #fff2}
+.spe-box .spe-header{position:absolute;z-index:8;left:7px;right:15px;top:10px;height:32px;border:2px solid color-mix(in srgb,var(--spe-detail),transparent 16%);border-radius:3px;background:linear-gradient(145deg,var(--spe-panel),color-mix(in srgb,var(--spe-panel),#000 42%));box-shadow:0 2px 3px #0006,inset 0 1px #fff4}
+.spe-box .spe-header>.spe-brand{position:absolute;left:4px;right:4px;top:4px;width:auto;height:13px}
+.spe-box .spe-header>.spe-subtitle{position:absolute;left:4px;right:4px;top:20px;width:auto;height:5px}
+.spe-box .spe-brand{color:var(--spe-text);font-family:Georgia,"Cooper Black",serif;font-size:12px;letter-spacing:-.035em;white-space:nowrap}
+.spe-box .spe-subtitle{color:var(--spe-detail);font-size:3.7px;white-space:nowrap}
+.spe-box .spe-window{position:absolute;z-index:6;left:10%;right:18%;top:47%;bottom:14%;overflow:hidden;border:3px solid color-mix(in srgb,var(--spe-detail),transparent 20%);border-radius:8px;background:radial-gradient(ellipse at 48% 24%,#b08050,#3b2412 76%);box-shadow:0 2px 4px #0008,inset 0 0 6px #0009}
+.spe-box .spe-window::before{content:"";position:absolute;z-index:1;left:-12%;right:-12%;bottom:-22%;height:76%;border-radius:50%;background:radial-gradient(ellipse at 45% 24%,#a97848,#4b2d16 64%,#25130a);box-shadow:0 -2px 5px #0007}
+.spe-box .spe-window::after{content:"";position:absolute;z-index:30;inset:0;pointer-events:none;background:linear-gradient(112deg,#fff4,#fff0 25% 69%,#fff2 78%,#fff0)}
+.spe-box .spe-micro{right:15px;bottom:5px}
+.spe-box .spe-shine{right:8px;background:linear-gradient(106deg,#fff4 0 7%,#fff0 24% 72%,#fff2 79%,#fff0 90%)}
 
 /* Flow wrapper */
 .spe-bar{width:66px;height:128px;clip-path:polygon(4% 0,96% 0,100% 5%,97% 95%,93% 100%,7% 100%,2% 96%,0 5%)}
@@ -354,6 +381,21 @@
     return root;
   }
 
+  function buildBox(settings) {
+    const root = prepareRoot("box", settings);
+    make("i", "spe-shell", root);
+    make("i", "spe-side", root);
+    const header = make("div", "spe-panel spe-header", root);
+    make("b", "spe-brand", header, settings.brand);
+    make("span", "spe-subtitle", header, settings.subtitle);
+    const windowElement = make("div", "spe-window", root);
+    populateWindow(windowElement, "box", settings.contents, Number(root.dataset.width), Number(root.dataset.height));
+    make("small", "spe-micro", root, `NET WT ${settings.netWeight}`);
+    make("i", "spe-shine", root);
+    addCommonText(root, settings, "paperboard box");
+    return root;
+  }
+
   function buildBar(settings) {
     const root = prepareRoot("bar", settings);
     make("i", "spe-shell", root);
@@ -435,7 +477,10 @@
       // Each child already occupies the panel's padded content box. Fit to that
       // actual box so text is neither driven to the minimum nor clipped by its
       // narrower brand container.
-      fitUniform(panel.querySelectorAll(".spe-brand span"), 3);
+      const titleLines = panel.querySelectorAll(".spe-brand span");
+      fitUniform(titleLines, 3);
+      if (!titleLines.length) panel.querySelectorAll(":scope > .spe-brand").forEach((element) =>
+        fitOne(element, Math.max(1, element.clientWidth), 3));
       panel.querySelectorAll(".spe-subtitle").forEach((element) =>
         fitOne(element, Math.max(1, element.clientWidth), 3));
     });
@@ -463,7 +508,7 @@
     const type = normalizeType(supplied.type || supplied.package);
     const settings = mergeOptions(type, supplied);
     if (settings.styles !== false) installStyles();
-    const builders = { bag: buildBag, pouch: buildPouch, bar: buildBar, can: buildCan };
+    const builders = { bag: buildBag, pouch: buildPouch, box: buildBox, bar: buildBar, can: buildCan };
     const root = builders[type](settings);
     queueTextFit(root);
     return root;
@@ -514,6 +559,7 @@
     open: openPackage,
     bag: (options) => forType("bag", options),
     pouch: (options) => forType("pouch", options),
+    box: (options) => forType("box", options),
     bar: (options) => forType("bar", options),
     can: (options) => forType("can", options)
   });
