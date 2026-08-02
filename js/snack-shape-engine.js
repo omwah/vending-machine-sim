@@ -36,7 +36,9 @@
     mintWhite: { label: "Peppermint", base: "#f1eadc", light: "#ffffff", dark: "#b9ab98", accent: "#cf3438" },
     caramel: { label: "Caramel", base: "#b66a2c", light: "#e6a35b", dark: "#683317", accent: "#f1c17d" },
     limeGreen: { label: "Lime green", base: "#86d62f", light: "#b8f064", dark: "#477f16", accent: "#d9ff8a" },
-    lightBrown: { label: "Light brown", base: "#c89a62", light: "#e5c18e", dark: "#79502d", accent: "#f1d5a8" }
+    lightBrown: { label: "Light brown", base: "#c89a62", light: "#e5c18e", dark: "#79502d", accent: "#f1d5a8" },
+    marshmallowWhite: { label: "Marshmallow white", base: "#f4f1e8", light: "#ffffff", dark: "#c9c4b8", accent: "#fffdf7" },
+    jerkyBrown: { label: "Smoked jerky brown", base: "#73351f", light: "#a85a35", dark: "#35150d", accent: "#cf8453" }
   });
 
   const CATALOG = Object.freeze({
@@ -67,6 +69,12 @@
         cornCurl: { label: "Corn curl", material: "fried", palettes: ["cheeseOrange", "cornYellow", "chiliRed"] }
       }
     },
+    savory: {
+      label: "Savory snacks",
+      shapes: {
+        jerkyStick: { label: "Cylindrical jerky stick", material: "soft", palettes: ["jerkyBrown"], ink: { rx: 0.16, ry: 0.4 } }
+      }
+    },
     candy: {
       label: "Candy",
       shapes: {
@@ -87,6 +95,7 @@
         caramelPillow: { label: "Caramel pillow", material: "soft", palettes: ["caramel", "amber"] },
         chocolateDrop: { label: "Chocolate drop", material: "chocolate", palettes: ["milkChocolate", "darkChocolate", "whiteChocolate"] },
         chocolateCup: { label: "Chocolate cup", material: "chocolate", palettes: ["milkChocolate", "darkChocolate", "whiteChocolate"] },
+        marshmallow: { label: "Marshmallow", material: "soft", palettes: ["marshmallowWhite"] },
         mintDisc: { label: "Mint disc", material: "hard", palettes: ["mintWhite", "pink", "green"] },
         gumdrop: { label: "Gumdrop", material: "gummy", palettes: ["rainbow", "red", "orange", "yellow", "green", "purple"] }
       }
@@ -646,6 +655,26 @@
     for (let x = 29; x <= 71; x += 7) group.appendChild(element("path", { d: `M ${x} 42 L ${x + (x < 50 ? 4 : -4)} 78`, stroke: context.palette.dark, "stroke-width": 1.5, opacity: 0.42 }));
   }
 
+  function renderMarshmallow(group, context) {
+    append(group,
+      element("path", { d: "M 24 34 Q 25 22 50 20 Q 75 22 76 34 L 74 67 Q 72 80 50 82 Q 28 80 26 67 Z", fill: context.fill, stroke: context.palette.dark, "stroke-width": 2 }),
+      element("ellipse", { cx: 50, cy: 34, rx: 26, ry: 14, fill: context.palette.light, stroke: context.palette.dark, "stroke-width": 1.5 }),
+      element("path", { d: "M 30 39 Q 50 48 70 39", fill: "none", stroke: context.palette.dark, "stroke-width": 1.4, opacity: 0.3 }),
+      element("path", { d: "M 31 64 Q 50 73 69 64", fill: "none", stroke: context.palette.light, "stroke-width": 2.5, opacity: 0.52 })
+    );
+    addGloss(group, "M 34 29 Q 47 23 59 27", 0.56);
+  }
+
+  function renderJerkyStick(group, context) {
+    append(group,
+      element("rect", { x: 34, y: 10, width: 32, height: 80, rx: 15, fill: context.fill, stroke: context.palette.dark, "stroke-width": 2.2 }),
+      element("ellipse", { cx: 50, cy: 24, rx: 15, ry: 8, fill: context.palette.light, stroke: context.palette.dark, "stroke-width": 1.5, opacity: 0.78 }),
+      element("path", { d: "M 41 31 Q 37 50 42 72 M 50 33 Q 47 52 51 82 M 59 31 Q 63 51 58 74", fill: "none", stroke: context.palette.dark, "stroke-width": 2, "stroke-linecap": "round", opacity: 0.46 }),
+      element("path", { d: "M 42 20 Q 48 15 55 18", fill: "none", stroke: context.palette.accent, "stroke-width": 2.5, "stroke-linecap": "round", opacity: 0.52 })
+    );
+    addSpecks(group, context, 7, { x: 39, y: 34, width: 22, height: 45 }, [context.palette.dark, context.palette.accent]);
+  }
+
   function renderMintDisc(group, context) {
     append(group,
       element("circle", { cx: 50, cy: 50, r: 35, fill: context.fill, stroke: context.palette.dark, "stroke-width": 2 }),
@@ -697,6 +726,8 @@
     caramelPillow: renderCaramelPillow,
     chocolateDrop: renderChocolateDrop,
     chocolateCup: renderChocolateCup,
+    marshmallow: renderMarshmallow,
+    jerkyStick: renderJerkyStick,
     mintDisc: renderMintDisc,
     gumdrop: renderGumdrop
   };
@@ -766,16 +797,16 @@
     return snack;
   }
 
-  // A piece's ink covers roughly the middle of its square box and is wider than
-  // it is tall. Approximating it as an ellipse gives the settle a cheap, stable
-  // collision proxy; these ratios are what the pile's density metrics assume.
+  // Most pieces cover roughly the middle of their square box and are wider than
+  // they are tall. Shapes with materially different silhouettes can supply an
+  // `ink` ellipse so the fill engine does not mistake empty space for product.
   const INK_RADIUS_X = 0.36;
   const INK_RADIUS_Y = 0.3;
 
-  function inkFootprint(size, rotation) {
+  function inkFootprint(size, rotation, entry) {
     const radians = (rotation * Math.PI) / 180;
-    const rx = size * INK_RADIUS_X;
-    const ry = size * INK_RADIUS_Y;
+    const rx = size * (entry.ink?.rx || INK_RADIUS_X);
+    const ry = size * (entry.ink?.ry || INK_RADIUS_Y);
     const cos = Math.cos(radians);
     const sin = Math.sin(radians);
     return { rx, ry, hw: Math.hypot(rx * cos, ry * sin), hh: Math.hypot(rx * sin, ry * cos) };
@@ -859,7 +890,7 @@
         : entry.palettes[Math.floor(random() * entry.palettes.length) % entry.palettes.length];
       const size = nominalSize * (0.86 + random() * 0.3);
       const rotation = +((random() * 2 - 1) * 75).toFixed(2);
-      const ink = inkFootprint(size, rotation);
+      const ink = inkFootprint(size, rotation, entry);
       const sink = ink.hh * settings.sink * (0.8 + random() * 0.4);
       const rough = (random() - 0.5) * nominalSize * 0.06;
 
