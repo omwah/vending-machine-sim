@@ -111,7 +111,10 @@ function enginePackage(options){
 const SHELVES = [
   [ // 1xx — chips
     {id:"bachelor-chow",effectId:"bachelor",clueId:"300",code:"101",price:125,name:"Bachelor Chow",w:88,h:92,
-      art:()=>bag({brand:"BACHELOR",bs:12,flav:"CHOW — Now With Flavor",c1:"#d27a22",c2:"#924315",c3:"#4e200b",tc:"#fff0bd",fc:"#fff0bd",food:["cracker","meat"],n:10,po:{w:28},oz:"2.0"})},
+      art:()=>enginePackage({type:"bag",code:"101",variant:"classic",width:.5,title:["BACHELOR","CHOW"],
+        subtitle:"Now with flavor",netWeight:"2.0 OZ",
+        colors:{primary:"#ef4a33",secondary:"#d1281c",dark:"#9c1710",panel:"#f7c81b",text:"#5d1109",detail:"#8d2a10"},
+        contents:{type:"cookie",seed:101,shapes:["chunkFragment","roundDrop"],palettes:["cocoa"]}})},
     {id:"soylent-green",effectId:"soylent",clueId:"202",code:"103",price:125,name:"Soylent Green",w:88,h:92,
       art:()=>pack({brand:"SOYLENT",flav:"GREEN — High Energy Wafer",c1:"#4b8b3b",c2:"#235521",c3:"#102d13",tc:"#e8f5ce",fc:"#e8f5ce",food:"wafer",n:5,po:{w:34,ar:1.6,rot:4}})},
     {id:"scooby-snacks",effectId:"scooby",clueId:"969",code:"105",price:125,name:"Scooby Snacks",w:88,h:92,

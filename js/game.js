@@ -586,15 +586,20 @@ function renderCollection(){
       trash.addEventListener("keydown",e=>e.stopPropagation());
       const art=document.createElement("div");art.className="collection-art";art.innerHTML=it.art();
       const pk=art.firstElementChild;
+      const enginePk=pk.matches(".spe-package");
       const artScale=Math.min(112/it.w,142/it.h),gw=it.w*artScale,gh=it.h*artScale;
-      if(!pk.matches(".spe-package"))pk.classList.add("gallery-empty");
+      if(!enginePk)pk.classList.add("gallery-empty");
       pk.style.setProperty("--gallery-w",gw+"px");
       pk.style.setProperty("--gallery-h",gh+"px");pk.style.setProperty("--u",artScale+"px");
       fitEnginePackage(pk,gw,gh);
-      if(!pk.matches(".spe-package")){
+      // Every collected package is shown torn open; only the ones carrying a
+      // secret code have it printed inside the opening.
+      const secret=it.clueId?SECRET_CODES[it.clueId]:"";
+      if(enginePk)SnackPackagingEngine.open(pk,secret);
+      else{
         const opening=document.createElement("i");opening.className="empty-opening";
-        if(it.clueId){
-          const code=document.createElement("b");code.className="secret-code";code.textContent=SECRET_CODES[it.clueId];
+        if(secret){
+          const code=document.createElement("b");code.className="secret-code";code.textContent=secret;
           opening.appendChild(code);
         }
         pk.appendChild(opening);

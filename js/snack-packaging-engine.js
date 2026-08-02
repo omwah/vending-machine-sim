@@ -25,22 +25,28 @@
     aluminumCan: "can"
   });
 
+  // `width` is the slimmest profile the engine draws; `maxWidth` is the
+  // broadest one a shelf slot can hold, which is where the hand-built packages
+  // sit. A package picks any point between the two (see resolveWidth), so the
+  // shelf can carry slim single-serve bags next to broad family ones. A can is
+  // a fixed extrusion, so it does not vary.
   const DIMENSIONS = Object.freeze({
-    bag: { width: 92, height: 126 },
-    pouch: { width: 90, height: 126 },
-    bar: { width: 66, height: 128 },
-    can: { width: 78, height: 128 }
+    bag: { width: 92, maxWidth: 129, height: 126 },
+    pouch: { width: 90, maxWidth: 126, height: 126 },
+    bar: { width: 66, maxWidth: 92, height: 128 },
+    can: { width: 78, maxWidth: 78, height: 128 }
   });
 
-  // Width of a generated contents heap in its own user units, and the width to
-  // height ratio of each package's window as laid out by the CSS below. The bag
-  // window is 78% x 34% of a 92 x 126 bag; the pouch window is 90% x 50% of a
-  // 90 x 126 pouch. Keep these in step with the `.spe-window` rules.
-  const PILE_WIDTH = 120;
-  const WINDOW_ASPECT = Object.freeze({
-    bag: (92 * 0.78) / (126 * 0.34),
-    pouch: (90 * 0.9) / (126 * 0.5)
+  // Fraction of the package box each type's contents window occupies. Kept in
+  // step with the `.spe-window` rules in CSS so the generated heap can be given
+  // the window's true aspect at whatever width the package ended up.
+  const WINDOW_INSET = Object.freeze({
+    bag: { width: 0.78, height: 0.34 },
+    pouch: { width: 0.9, height: 0.5 }
   });
+
+  // Width of a generated contents heap in its own user units.
+  const PILE_WIDTH = 120;
 
   const DEFAULTS = Object.freeze({
     bag: {
@@ -80,7 +86,7 @@
 .spe-package.pk *{box-sizing:border-box}
 .spe-package .spe-shell,.spe-package .spe-shine{position:absolute;inset:0}
 .spe-package .spe-shine{z-index:20;pointer-events:none}
-.spe-package .spe-brand{position:absolute;z-index:12;overflow:hidden;text-align:center;font-family:Arial Black,Impact,sans-serif;font-weight:900;line-height:.92;letter-spacing:-.055em;text-shadow:0 2px 1px #0008}
+.spe-package .spe-brand{position:absolute;z-index:12;overflow:hidden;text-align:center;font-family:Arial Black,Impact,sans-serif;font-weight:900;line-height:.92;letter-spacing:-.055em;text-shadow:0 1px 1px #0007}
 .spe-package .spe-subtitle{position:absolute;z-index:12;overflow:hidden;text-align:center;font:800 5px/1.15 Arial,sans-serif;letter-spacing:.07em;text-transform:uppercase;text-shadow:0 1px #0008}
 .spe-package .spe-micro{position:absolute;z-index:16;color:#fff9;font:700 4px/1 ui-monospace,monospace;letter-spacing:.07em;text-transform:uppercase}
 
@@ -154,6 +160,20 @@
 .spe-can .spe-dent{position:absolute;z-index:21;right:0;top:59px;width:13px;height:20px;border-radius:50%;background:radial-gradient(ellipse at 80% 50%,#0008,#fff2 42%,#0000 67%);opacity:.7}
 .spe-can .spe-drop{position:absolute;z-index:22;width:4px;height:6px;border-radius:60% 40% 55% 45%;background:linear-gradient(135deg,#fff9,#bcecff33 45%,#fff1);box-shadow:1px 2px 2px #0004}
 
+/* Opened package. The collection displays spent wrappers, torn open across the
+   top; the ones that carried a secret code have it printed inside the opening.
+   Mirrors the legacy .gallery-empty / .empty-opening treatment in game.css so
+   engine and hand-built packages sit side by side in the same gallery. */
+.spe-package .spe-opening{display:none}
+.pk.spe-package.spe-opened{filter:saturate(.74) brightness(.9) drop-shadow(0 8px 8px #0009)}
+.pk.spe-package.spe-opened:not(.spe-can){clip-path:polygon(0 8%,9% 3%,18% 9%,29% 2%,40% 8%,51% 1%,62% 9%,73% 3%,84% 9%,94% 2%,100% 7%,100% 100%,0 100%)}
+.pk.spe-package.spe-opened .spe-opening{position:absolute;z-index:33;display:grid;place-items:center;left:11%;right:11%;top:2%;height:15%;border-radius:50%;transform:rotate(-2deg);
+  background:radial-gradient(ellipse at 50% 70%,#727a7f 0 42%,#aeb6ba 52%,#eef2f3 63%,#7c8589 68%,#0000 73%);
+  box-shadow:inset 0 3px 7px #22282bbf,0 -1px 1px #ffffffa6}
+.pk.spe-package.spe-opened .spe-code{color:#353b3e;font:900 10px/1 Arial,sans-serif;font-style:normal;letter-spacing:1px;text-shadow:0 1px 0 #fffc;transform:rotate(2deg)}
+.pk.spe-can.spe-opened .spe-opening{left:15%;right:15%;top:1%;height:13%}
+.pk.spe-can.spe-opened .spe-tab{display:none}
+
 /* Built-in fallback contents when SnackShapeEngine is not present. */
 .spe-fallback-piece{position:absolute;z-index:var(--spe-z);display:block;transform:rotate(var(--spe-r)) scale(var(--spe-s));transform-origin:50% 50%;box-shadow:0 2px 3px #000b,inset 0 1px #fff4}
 .spe-fallback-piece.spe-round{width:18px;height:14px;border-radius:47%;background:linear-gradient(145deg,#f2b568,#a45723 55%,#653016)}
@@ -196,6 +216,23 @@
     root.style.setProperty("--spe-detail", colors.detail);
   }
 
+  /**
+   * How broad to draw a package.
+   *
+   * A fraction from 0 to 1 walks the type's range: 0 is the slim profile the
+   * engine has always drawn, 1 is as broad as the shelf slot allows and matches
+   * the hand-built packages. Anything above 1 is taken as an explicit width in
+   * design pixels, so a one-off package can still be sized directly.
+   */
+  function resolveWidth(type, requested) {
+    const dimensions = DIMENSIONS[type];
+    const value = Number(requested);
+    if (requested == null || !Number.isFinite(value)) return dimensions.width;
+    if (value > 1) return value;
+    const widest = dimensions.maxWidth || dimensions.width;
+    return dimensions.width + (widest - dimensions.width) * Math.min(1, Math.max(0, value));
+  }
+
   function prepareRoot(type, settings) {
     const root = make("div", `pk spe-package spe-${type}`);
     root.dataset.packageType = type;
@@ -203,8 +240,14 @@
     if (settings.className) root.classList.add(...String(settings.className).split(/\s+/).filter(Boolean));
     if (settings.scale != null) root.style.transform = `scale(${Number(settings.scale) || 1})`;
     const dimensions = DIMENSIONS[type];
-    root.dataset.width = String(settings.width || dimensions.width);
-    root.dataset.height = String(settings.height || dimensions.height);
+    const width = resolveWidth(type, settings.width);
+    const height = Number(settings.height) || dimensions.height;
+    root.dataset.width = String(width);
+    root.dataset.height = String(height);
+    // The stylesheet carries the slim default; an inline size covers packages
+    // drawn at any other width before the shelf's fitter has run on them.
+    root.style.width = `${width}px`;
+    root.style.height = `${height}px`;
     applyColors(root, settings.colors);
     return root;
   }
@@ -247,16 +290,20 @@
     }
   }
 
-  function populateWindow(target, type, options) {
+  function populateWindow(target, type, options, packageWidth, packageHeight) {
     if (!target || options === false) return;
     const settings = { type: "cookie", seed: 1, ...options };
     const shapeEngine = global.SnackShapeEngine;
     if (shapeEngine && typeof shapeEngine.renderPile === "function" && settings.fallback !== true) {
       // Give the heap the same aspect as the window it fills, so covering the
-      // window crops the heap evenly instead of shaving one axis hard.
+      // window crops the heap evenly instead of shaving one axis hard. Broader
+      // packages get a proportionally wider heap, which keeps a piece the same
+      // real size on the shelf no matter how wide its package is.
+      const inset = WINDOW_INSET[type] || WINDOW_INSET.bag;
+      const aspect = (packageWidth * inset.width) / (packageHeight * inset.height);
       const pileOptions = {
         width: PILE_WIDTH,
-        height: Math.round(PILE_WIDTH / (WINDOW_ASPECT[type] || WINDOW_ASPECT.bag)),
+        height: Math.round(PILE_WIDTH / aspect),
         ...settings
       };
       // The heap stops when it has filled the window, so a requested `count` is
@@ -285,7 +332,7 @@
     lines.forEach((line) => make("span", "", brand, line));
     make("span", "spe-subtitle", panel, settings.subtitle);
     const windowElement = make("div", "spe-window", root);
-    populateWindow(windowElement, "bag", settings.contents);
+    populateWindow(windowElement, "bag", settings.contents, Number(root.dataset.width), Number(root.dataset.height));
     make("small", "spe-micro", root, `NET WT ${settings.netWeight}`);
     make("i", "spe-shine", root);
     addCommonText(root, settings, "pillow bag");
@@ -300,7 +347,7 @@
     make("b", "spe-brand", root, settings.brand);
     make("span", "spe-subtitle", root, settings.subtitle);
     const windowElement = make("div", "spe-window", root);
-    populateWindow(windowElement, "pouch", settings.contents);
+    populateWindow(windowElement, "pouch", settings.contents, Number(root.dataset.width), Number(root.dataset.height));
     make("small", "spe-micro", root, `NET WT ${settings.netWeight}`);
     make("i", "spe-shine", root);
     addCommonText(root, settings, "stand-up pouch");
@@ -435,8 +482,27 @@
     return create({ ...(options || {}), type });
   }
 
+  /**
+   * Show an already-built package as opened and spent.
+   *
+   * Only packages that carried a secret code get one printed inside the
+   * opening; passing no code leaves the wrapper empty, which is the normal
+   * case. Safe to call twice on the same element — a second call updates the
+   * code in place rather than stacking another opening on top.
+   */
+  function openPackage(target, code) {
+    const root = typeof target === "string" ? document.querySelector(target) : target;
+    if (!root || !root.classList || !root.classList.contains("spe-package")) return null;
+    root.classList.add("spe-opened");
+    const opening = root.querySelector(".spe-opening") || make("i", "spe-opening", root);
+    const printed = opening.querySelector(".spe-code");
+    if (code) (printed || make("b", "spe-code", opening)).textContent = String(code);
+    else if (printed) printed.remove();
+    return root;
+  }
+
   global.SnackPackagingEngine = Object.freeze({
-    version: "1.0.0",
+    version: "1.1.0",
     types: Object.freeze(Object.keys(DIMENSIONS)),
     dimensions: DIMENSIONS,
     defaults: DEFAULTS,
@@ -445,6 +511,7 @@
     create,
     render,
     fitText,
+    open: openPackage,
     bag: (options) => forType("bag", options),
     pouch: (options) => forType("pouch", options),
     bar: (options) => forType("bar", options),

@@ -280,7 +280,7 @@ if (process.argv.includes("--packaging-only")) {
   console.log(JSON.stringify(report,null,2));
   socket.close();
   if(errors.length||initial.scripts.length!==6||initial.sheets.length!==2||initial.slots!==30||packagingInvalid||
-    packaging.engines.shape!=="1.1.0"||packaging.engines.packaging!=="1.0.0"||
+    packaging.engines.shape!=="1.1.0"||packaging.engines.packaging!=="1.1.0"||
     packaging.brawndo.slot!=="brawndo"||packaging.brawndo.type!=="can"||packaging.brawndo.coilWraps!==2||
     pileInvalid(packaging.replacement)||
     Object.values(packagingConsistency).some(item=>!item.consistent||!item.safe))
@@ -452,7 +452,7 @@ if (process.argv.includes("--packaging-only")) {
     item.containment.some(text=>!text.insidePackage||!text.insideDesign||!text.unclipped));
   const failed = errors.length || initial.sheets.length !== 2 || initial.scripts.length !== 6 ||
     initial.shelves !== 7 || initial.slots !== 30 || initial.assetRequests.length !== 0 ||
-    packaging.engines.shape!=="1.1.0" || packaging.engines.packaging!=="1.0.0" || packagingInvalid ||
+    packaging.engines.shape!=="1.1.0" || packaging.engines.packaging!=="1.1.0" || packagingInvalid ||
     packaging.brawndo.slot!=="brawndo" || packaging.brawndo.type!=="can" || packaging.brawndo.coilWraps!==2 ||
     pileInvalid(packaging.replacement) ||
     Object.values(packagingConsistency).some(item=>!item.consistent||!item.safe) ||
