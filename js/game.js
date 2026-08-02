@@ -660,9 +660,17 @@ function fillAchievementIcon(icon,achievement,maxWidth=46,maxHeight=54){
   if(achievement.type==="item"){
     icon.innerHTML=achievement.item.art();const pk=icon.firstElementChild;
     const artScale=Math.min(maxWidth/achievement.item.w,maxHeight/achievement.item.h);
-    pk.style.width=achievement.item.w*artScale+"px";pk.style.height=achievement.item.h*artScale+"px";
+    const targetWidth=achievement.item.w*artScale,targetHeight=achievement.item.h*artScale;
+    pk.style.width=targetWidth+"px";pk.style.height=targetHeight+"px";
     pk.style.setProperty("--u",artScale+"px");
-    fitEnginePackage(pk,achievement.item.w*artScale,achievement.item.h*artScale);
+    if(pk.matches(".spe-package")){
+      const nativeWidth=Number(pk.dataset.width)||targetWidth,nativeHeight=Number(pk.dataset.height)||targetHeight;
+      const displayScale=Math.min(targetWidth/nativeWidth,targetHeight/nativeHeight);
+      const displayWidth=nativeWidth*displayScale,displayHeight=nativeHeight*displayScale;
+      const frame=document.createElement("div");frame.className="achievement-package";
+      frame.style.width=displayWidth+"px";frame.style.height=displayHeight+"px";
+      pk.replaceWith(frame);frame.appendChild(pk);fitEnginePackage(pk,displayWidth,displayHeight);
+    }
   }else icon.innerHTML=achievementIconSvg(achievement);
 }
 function showAchievementToast(id){

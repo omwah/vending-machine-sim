@@ -273,7 +273,46 @@ const pileInvalid = (pile) => pile.name!=="Quantum Crisps"||pile.type!=="bag"||
   pile.croppedSides<4||pile.croppedBottom<3||pile.croppedTop<1||pile.minTop>0||
   pile.distinctCenters<16;
 
-if (process.argv.includes("--packaging-only")) {
+if (process.argv.includes("--brawndo-only")) {
+  const brawndo = await evaluate(`(()=>{
+    const item=ITEMS['508'],slot=slotEl(item.code),holder=slot.querySelector('.itemholder');
+    const active={item,scope:new EffectScope(),skipPackageFall:false};
+    EFFECTS.brawndo.preFall(effectContext(active,slot,holder));
+    return {skipPackageFall:active.skipPackageFall};
+  })()`);
+  const report={initial,brawndo,errors};
+  console.log(JSON.stringify(report,null,2));
+  socket.close();
+  if(errors.length||brawndo.skipPackageFall)process.exitCode=1;
+} else if (process.argv.includes("--achievements-only")) {
+  const achievementIcons = await evaluate(`(async()=>{
+    const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+    const savedUnlocked={...ACHIEVEMENTS.unlocked},savedStyle=achievementsEl.getAttribute('style');
+    achievementCatalog().filter(achievement=>achievement.type==='item')
+      .forEach(achievement=>{ACHIEVEMENTS.unlocked[achievement.id]=Date.now();});
+    renderAchievements();achievementsEl.style.display='grid';achievementsEl.style.visibility='hidden';
+    await frame();await frame();
+    const items=[...achievementList.querySelectorAll('.achievement-card')].map(card=>{
+      const icon=card.querySelector('.achievement-icon'),packageElement=icon.querySelector('.pk');
+      if(!packageElement)return null;
+      const outer=icon.getBoundingClientRect(),inner=packageElement.getBoundingClientRect();
+      return {title:card.querySelector('h3').textContent,
+        visible:inner.width>0&&inner.height>0,
+        contained:inner.left>=outer.left-.75&&inner.top>=outer.top-.75&&
+          inner.right<=outer.right+.75&&inner.bottom<=outer.bottom+.75,
+        centerDelta:{x:+(Math.abs((inner.left+inner.right-outer.left-outer.right)/2)).toFixed(2),
+          y:+(Math.abs((inner.top+inner.bottom-outer.top-outer.bottom)/2)).toFixed(2)}};
+    }).filter(Boolean);
+    ACHIEVEMENTS.unlocked=savedUnlocked;renderAchievements();
+    if(savedStyle==null)achievementsEl.removeAttribute('style');else achievementsEl.setAttribute('style',savedStyle);
+    return items;
+  })()`);
+  const report={initial,achievementIcons,errors};
+  console.log(JSON.stringify(report,null,2));
+  socket.close();
+  if(errors.length||!achievementIcons.length||achievementIcons.some(icon=>
+    !icon.visible||!icon.contained||icon.centerDelta.x>1||icon.centerDelta.y>1))process.exitCode=1;
+} else if (process.argv.includes("--packaging-only")) {
   const packagingInvalid=packaging.packages.some(item=>!item.titleUniform||item.overlaps.length||
     item.containment.some(text=>!text.insidePackage||!text.insideDesign||!text.unclipped));
   const report={initial,packaging,packagingConsistency,errors};
@@ -387,7 +426,10 @@ if (process.argv.includes("--packaging-only")) {
     for(const it of Object.values(ITEMS).filter(item=>item.effectId)){
       const slot=slotEl(it.code),holder=slot.querySelector(".itemholder");
       const active={item:it,scope:new EffectScope(),skipPackageFall:false};
-      try{await EFFECTS[it.effectId].preFall?.(effectContext(active,slot,holder));results[it.effectId]="ok";}
+      try{
+        await EFFECTS[it.effectId].preFall?.(effectContext(active,slot,holder));
+        results[it.effectId]=it.id==="brawndo"&&active.skipPackageFall?"skipped-package-fall":"ok";
+      }
       catch(error){results[it.effectId]=String(error);}
       finally{active.scope.cleanup();holder.classList.remove("fx-scared","fx-faint","fx-puff");machineEl.classList.remove("fx-shudder");}
     }
