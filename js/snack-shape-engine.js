@@ -14,6 +14,7 @@
     cornYellow: { label: "Corn yellow", base: "#d7a23b", light: "#f4d374", dark: "#835413", accent: "#fff0b0" },
     cheeseOrange: { label: "Cheese orange", base: "#d96e20", light: "#f2a140", dark: "#813711", accent: "#ffcf64" },
     blueCorn: { label: "Blue corn", base: "#51495f", light: "#7e748f", dark: "#25212f", accent: "#b9afc8" },
+    eldritchTeal: { label: "Eldritch teal", base: "#167f84", light: "#4ad1c7", dark: "#07383f", accent: "#a4fff2" },
     chiliRed: { label: "Chili red", base: "#a84928", light: "#d87b4b", dark: "#592313", accent: "#f0b14f" },
     potatoPale: { label: "Pale potato", base: "#e3c46d", light: "#f8e4a0", dark: "#987125", accent: "#fff3b8" },
     friedGold: { label: "Fried gold", base: "#c98b2e", light: "#e9bc5d", dark: "#744511", accent: "#f7dc86" },
@@ -38,7 +39,8 @@
     limeGreen: { label: "Lime green", base: "#86d62f", light: "#b8f064", dark: "#477f16", accent: "#d9ff8a" },
     lightBrown: { label: "Light brown", base: "#c89a62", light: "#e5c18e", dark: "#79502d", accent: "#f1d5a8" },
     marshmallowWhite: { label: "Marshmallow white", base: "#f4f1e8", light: "#ffffff", dark: "#c9c4b8", accent: "#fffdf7" },
-    jerkyBrown: { label: "Smoked jerky brown", base: "#73351f", light: "#a85a35", dark: "#35150d", accent: "#cf8453" }
+    jerkyBrown: { label: "Smoked jerky brown", base: "#73351f", light: "#a85a35", dark: "#35150d", accent: "#cf8453" },
+    roastedMeat: { label: "Roasted meat", base: "#8f3f2b", light: "#c06a45", dark: "#3e1712", accent: "#e9a06e" }
   });
 
   const CATALOG = Object.freeze({
@@ -49,7 +51,7 @@
         sandwichRound: { label: "Round sandwich", material: "baked", palettes: ["darkCocoa", "vanilla", "redCocoa"] },
         sandwichOval: { label: "Oval sandwich", material: "baked", palettes: ["vanilla", "cocoa"] },
         embossedRect: { label: "Embossed shortbread", material: "baked", palettes: ["vanilla", "butter", "cocoa"] },
-        squareCracker: { label: "Square cracker", material: "baked", palettes: ["limeGreen"] },
+        squareCracker: { label: "Square cracker", material: "baked", palettes: ["limeGreen", "cheeseOrange", "chiliRed"] },
         dogBone: { label: "Dog-bone biscuit", material: "baked", palettes: ["lightBrown"] },
         waferRoll: { label: "Rolled wafer", material: "baked", palettes: ["vanilla", "cocoa", "pink"] },
         ringCookie: { label: "Ring cookie", material: "baked", palettes: ["butter", "oat", "cocoa"] },
@@ -66,13 +68,16 @@
         kettleFold: { label: "Kettle fold", material: "fried", palettes: ["friedGold", "russet", "cheeseOrange"] },
         saddleCrisp: { label: "Saddle crisp", material: "fried", palettes: ["potatoPale", "cheeseOrange", "cornYellow"] },
         cornScoop: { label: "Corn scoop", material: "fried", palettes: ["cornYellow", "cheeseOrange", "blueCorn"] },
-        cornCurl: { label: "Corn curl", material: "fried", palettes: ["cheeseOrange", "cornYellow", "chiliRed"] }
+        cornCurl: { label: "Corn curl", material: "fried", palettes: ["cheeseOrange", "cornYellow", "chiliRed", "blueCorn", "eldritchTeal"] },
+        popcornCluster: { label: "Popcorn cluster", material: "fried", palettes: ["butter", "potatoPale"] }
       }
     },
     savory: {
       label: "Savory snacks",
       shapes: {
-        jerkyStick: { label: "Cylindrical jerky stick", material: "soft", palettes: ["jerkyBrown"], ink: { rx: 0.16, ry: 0.4 } }
+        jerkyStick: { label: "Cylindrical jerky stick", material: "soft", palettes: ["jerkyBrown"], ink: { rx: 0.16, ry: 0.4 } },
+        meatChunk: { label: "Irregular roasted meat chunk", material: "soft", palettes: ["roastedMeat"], ink: { rx: 0.34, ry: 0.31 } },
+        peanutPod: { label: "Peanut pod", material: "baked", palettes: ["oat", "lightBrown"], ink: { rx: 0.25, ry: 0.38 } }
       }
     },
     candy: {
@@ -88,9 +93,9 @@
         gummyCluster: { label: "Gummy cluster", material: "mixed", palettes: ["rainbow", "berry", "tropical"] },
         candyRope: { label: "Candy rope", material: "mixed", palettes: ["rainbow", "berry", "tropical"] },
         candyCorn: { label: "Candy corn", material: "soft", palettes: ["orange"] },
-        swirlDisc: { label: "Swirl disc", material: "hard", palettes: ["mintWhite", "rainbow", "berry"] },
+        swirlDisc: { label: "Swirl disc", material: "hard", palettes: ["mintWhite", "rainbow", "berry", "caramel"] },
         hardRing: { label: "Hard ring", material: "hard", palettes: ["red", "orange", "yellow", "green", "blue", "purple", "amber"] },
-        hardLozenge: { label: "Hard lozenge", material: "hard", palettes: ["red", "green", "purple", "amber"] },
+        hardLozenge: { label: "Hard lozenge", material: "hard", palettes: ["red", "green", "blue", "purple", "amber"] },
         licoriceTwist: { label: "Licorice twist", material: "soft", palettes: ["red", "black"] },
         caramelPillow: { label: "Caramel pillow", material: "soft", palettes: ["caramel", "amber"] },
         chocolateDrop: { label: "Chocolate drop", material: "chocolate", palettes: ["milkChocolate", "darkChocolate", "whiteChocolate"] },
@@ -502,6 +507,19 @@
     context.edged = true;
   }
 
+  function renderPopcornCluster(group, context) {
+    const lobes = [[35, 39, 18], [52, 31, 20], [68, 42, 17], [43, 55, 20], [61, 58, 19]];
+    lobes.forEach(([cx, cy, r], index) => group.appendChild(element("circle", {
+      cx, cy, r, fill: index % 2 ? context.fill : context.palette.light,
+      stroke: context.palette.dark, "stroke-width": 1.7
+    })));
+    append(group,
+      element("path", { d: "M 36 61 Q 50 80 65 62 Q 55 72 43 67 Z", fill: context.palette.base, stroke: context.palette.dark, "stroke-width": 1.6 }),
+      element("path", { d: "M 35 33 Q 44 22 54 25", fill: "none", stroke: "#ffffff", "stroke-width": 3, "stroke-linecap": "round", opacity: 0.42 })
+    );
+    context.edged = true;
+  }
+
   function renderLentil(group, context) {
     append(group,
       element("ellipse", { cx: 50, cy: 53, rx: 35, ry: 27, fill: context.fill, stroke: context.palette.dark, "stroke-width": 2 }),
@@ -675,6 +693,25 @@
     addSpecks(group, context, 7, { x: 39, y: 34, width: 22, height: 45 }, [context.palette.dark, context.palette.accent]);
   }
 
+  function renderMeatChunk(group, context) {
+    const body = smoothBlob(context.random, 50, 51, 36, 30, 14, 0.2);
+    append(group,
+      element("path", { d: body, fill: context.fill, stroke: context.palette.dark, "stroke-width": 2.6 }),
+      element("path", { d: "M 25 48 Q 37 31 52 42 T 76 38 M 31 66 Q 47 53 68 64", fill: "none", stroke: context.palette.light, "stroke-width": 3.2, "stroke-linecap": "round", opacity: 0.52 }),
+      element("path", { d: "M 33 35 Q 45 24 58 31", fill: "none", stroke: context.palette.accent, "stroke-width": 2.4, "stroke-linecap": "round", opacity: 0.62 })
+    );
+    addSpecks(group, context, 10, { x: 25, y: 29, width: 50, height: 45 }, [context.palette.dark, context.palette.accent]);
+  }
+
+  function renderPeanutPod(group, context) {
+    const body = "M 36 14 C 51 10 63 20 61 35 C 76 42 75 62 62 68 C 63 83 48 93 35 84 C 23 76 25 61 34 54 C 22 43 24 24 36 14 Z";
+    append(group,
+      element("path", { d: body, fill: context.fill, stroke: context.palette.dark, "stroke-width": 2.2 }),
+      element("path", { d: "M 35 22 Q 54 35 36 48 Q 55 61 40 80 M 28 36 Q 43 43 61 35 M 31 62 Q 48 68 65 58", fill: "none", stroke: context.palette.dark, "stroke-width": 1.5, opacity: 0.48 })
+    );
+    addSpecks(group, context, 8, { x: 31, y: 24, width: 34, height: 55 }, [context.palette.dark]);
+  }
+
   function renderMintDisc(group, context) {
     append(group,
       element("circle", { cx: 50, cy: 50, r: 35, fill: context.fill, stroke: context.palette.dark, "stroke-width": 2 }),
@@ -709,6 +746,7 @@
     saddleCrisp: renderSaddleCrisp,
     cornScoop: renderCornScoop,
     cornCurl: renderCornCurl,
+    popcornCluster: renderPopcornCluster,
     lentil: renderLentil,
     jellyBean: renderJellyBean,
     gummyBear: renderGummyBear,
@@ -728,6 +766,8 @@
     chocolateCup: renderChocolateCup,
     marshmallow: renderMarshmallow,
     jerkyStick: renderJerkyStick,
+    meatChunk: renderMeatChunk,
+    peanutPod: renderPeanutPod,
     mintDisc: renderMintDisc,
     gumdrop: renderGumdrop
   };
