@@ -12,6 +12,7 @@
  *   node tests/browser-test.js file:///absolute/path/to/index.html
  *   node tests/browser-test.js http://127.0.0.1:8765/index.html
  *   node tests/browser-test.js <url> --slime-only
+ *   node tests/browser-test.js <url> --rocket-only
  */
 
 const targetUrl = process.argv[2];
@@ -430,6 +431,69 @@ if (process.argv.includes("--brawndo-only")) {
   if (errors.length || baseline.machineBottom > baseline.viewportHeight ||
       zoomed.machineBottom <= zoomed.viewportHeight || zoomed.scrollHeight <= zoomed.viewportHeight ||
       zoomed.labelCenterDelta > 0.5 || modesInvalid) process.exitCode = 1;
+} else if (process.argv.includes("--rocket-only")) {
+  // The rocket's route is authored against the wide canvas but has to read on every
+  // one, so it is sampled across the flight and checked for staying over the machine
+  // and leaving through the top of the window rather than out of the side.
+  const sample = () => evaluate(`(()=>{
+    const rocket=document.querySelector(".fx-rocket");
+    if(!rocket)return null;
+    const r=rocket.getBoundingClientRect(),s=stage.getBoundingClientRect();
+    return {
+      centerX:+(r.left+r.width/2).toFixed(1),
+      stageLeft:+s.left.toFixed(1),
+      stageRight:+s.right.toFixed(1),
+      top:+r.top.toFixed(1),
+      bottom:+r.bottom.toFixed(1),
+      opacity:+(+getComputedStyle(rocket).opacity).toFixed(3)
+    };
+  })()`);
+  const flights = {};
+  for (const [name, width, height] of [["compact", 390, 844], ["wide", 1400, 900]]) {
+    await navigate(targetUrl);
+    await send("Emulation.setDeviceMetricsOverride", {
+      width, height, deviceScaleFactor: 1, mobile: width < 700
+    });
+    await delay(250);
+    // Secret codes are randomised per browser, so the event is reached by its id.
+    await evaluate(`(()=>{
+      if(!META.discovered.includes("300"))META.discovered.push("300");
+      runSecretCommand(SECRET_CODES["300"]);
+    })()`);
+    // The launch is scheduled 480ms in and runs for 4s; sample 15%-95% of that.
+    await delay(1100);
+    const samples = [await sample()];
+    for (let i = 0; i < 4; i++) { await delay(800); samples.push(await sample()); }
+    flights[name] = { mode: await evaluate(`artMode`), samples };
+  }
+
+  const report = { initial, flights, errors };
+  console.log(JSON.stringify(report, null, 2));
+  socket.close();
+
+  const flightInvalid = flight => {
+    const s = flight.samples;
+    if (s.some(item => !item)) return true;
+    const onScreen = s.filter(item => item.bottom > 0);
+    return (
+      // never slides out of the side of the machine while it is still visible;
+      // it may leave to the right once it is above the top of the window
+      onScreen.some(item => item.centerX < item.stageLeft || item.centerX > item.stageRight) ||
+      // fully opaque for as long as any part of it is still on screen
+      onScreen.some(item => item.opacity < 0.999) ||
+      // gone off the top by the end, rather than fading in place
+      s[s.length - 1].bottom > 0 ||
+      // pitches over to the right on the way up
+      onScreen.length < 2 ||
+      onScreen[onScreen.length - 1].centerX - onScreen[0].centerX <
+        (s[0].stageRight - s[0].stageLeft) * 0.08 ||
+      // and the ascent slows into the hang before it accelerates away
+      (s[2].top - s[3].top) >= (s[1].top - s[2].top)
+    );
+  };
+
+  if (errors.length || flights.compact.mode !== "compact" || flights.wide.mode !== "wide" ||
+      Object.values(flights).some(flightInvalid)) process.exitCode = 1;
 } else if (process.argv.includes("--slime-only")) {
   const report = { initial, slimePainted: await testSlime(), errors };
   console.log(JSON.stringify(report, null, 2));
