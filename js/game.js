@@ -955,16 +955,21 @@ function doOK(){
    ============================================================ */
 async function vend(it,change){
   setMode("vending");
-  setVFD("VENDING…");sfx.motor();
+  setVFD("VENDING…");
   revealSlot(it.code);   /* settles well inside the 900ms coil spin below */
   const slot=slotEl(it.code);
   const holder=slot.querySelector(".itemholder");
   const coils=[...slot.querySelectorAll(".coil")];
-  const active={item:it,change,scope:new EffectScope(),skipPackageFall:false,afterRelease:null,
+  const active={item:it,change,scope:new EffectScope(),skipPackageFall:false,afterClone:null,afterRelease:null,
     trayArt:it.trayArt||it.art};
   S.activeVend=active;
   const ctx=effectContext(active,slot,holder);
+  const effect=EFFECTS[it.effectId]||EFFECTS.default;
+  if(effect.preCoil){
+    try{await effect.preCoil(ctx);}catch(err){console.error("Pre-coil product effect failed:",it.effectId,err);}
+  }
   // the coil turns and its thread marches forward, walking the product out
+  sfx.motor();
   coils.forEach(c=>c.classList.add("spin"));
   holder.style.transition="transform .9s cubic-bezier(.4,.1,.8,.6)";
   holder.classList.add("pushing");
@@ -972,7 +977,6 @@ async function vend(it,change){
   try{
     coils.forEach(c=>c.classList.remove("spin"));
     holder.classList.remove("pushing"); holder.style.transition="";
-    const effect=EFFECTS[it.effectId]||EFFECTS.default;
     if(effect.preFall){
       try{await effect.preFall(ctx);}catch(err){console.error("Product effect failed:",it.effectId,err);active.skipPackageFall=false;}
     }
@@ -983,6 +987,7 @@ async function vend(it,change){
       clone=holder.cloneNode(true);
       clone.classList.remove("fx-scared","fx-faint","fx-puff","pushing");
       clone.querySelectorAll(".fx-fright,.fx-sweat").forEach(el=>el.remove());
+      if(active.afterClone)active.afterClone();
       const r=holder.getBoundingClientRect(), gr=glassEl.getBoundingClientRect();
       const w=r.width/scale, h=r.height/scale;
       const drop=(gr.bottom-r.top)/scale + h*0.6;
