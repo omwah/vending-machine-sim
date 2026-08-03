@@ -12,6 +12,7 @@
  *   node tests/browser-test.js file:///absolute/path/to/index.html
  *   node tests/browser-test.js http://127.0.0.1:8765/index.html
  *   node tests/browser-test.js <url> --slime-only
+ *   node tests/browser-test.js <url> --sickly-only
  *   node tests/browser-test.js <url> --rocket-only
  */
 
@@ -431,6 +432,52 @@ if (process.argv.includes("--brawndo-only")) {
   if (errors.length || baseline.machineBottom > baseline.viewportHeight ||
       zoomed.machineBottom <= zoomed.viewportHeight || zoomed.scrollHeight <= zoomed.viewportHeight ||
       zoomed.labelCenterDelta > 0.5 || modesInvalid) process.exitCode = 1;
+} else if (process.argv.includes("--sickly-only")) {
+  await send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "no-preference" }]
+  });
+  await navigate(targetUrl);
+  const before = await evaluate(`({
+    machineClass:machineEl.classList.contains("fx-sickly-machine"),
+    machineOpacity:getComputedStyle(machineEl,"::before").opacity
+  })`);
+  await evaluate(`(()=>{
+    if(!META.discovered.includes("202"))META.discovered.push("202");
+    SECRET_COMMANDS[SECRET_CODES["202"]].duration=350;
+    machineEl.style.setProperty("--sickly-machine-duration","280ms");
+    window.__sicklyEvent=runSecretCommand(SECRET_CODES["202"]);
+  })()`);
+  const sample = () => evaluate(`({
+    machineClass:machineEl.classList.contains("fx-sickly-machine"),
+    machineOpacity:getComputedStyle(machineEl,"::before").opacity,
+    machineBrightness:getComputedStyle(machineEl,"::before").filter,
+    machineAnimation:getComputedStyle(machineEl,"::before").animationName,
+    shelfClass:shelvesEl.classList.contains("fx-sickly-long"),
+    shelfAnimation:getComputedStyle(shelvesEl).animationName
+  })`);
+  await delay(80);
+  const duringA = await sample();
+  await delay(140);
+  const duringB = await sample();
+  const result = await evaluate(`window.__sicklyEvent`);
+  const after = await evaluate(`({
+    machineClass:machineEl.classList.contains("fx-sickly-machine"),
+    shelfClass:shelvesEl.classList.contains("fx-sickly-long"),
+    machineOpacity:getComputedStyle(machineEl,"::before").opacity
+  })`);
+  const report = { initial, before, duringA, duringB, after, result, errors };
+  console.log(JSON.stringify(report, null, 2));
+  socket.close();
+
+  const rampingMachine = [duringA, duringB].every(sample =>
+    sample.machineClass && sample.machineAnimation === "sicklymachineramp") &&
+    +duringB.machineOpacity > +duringA.machineOpacity &&
+    duringA.machineBrightness !== duringB.machineBrightness;
+  const flashingSnacks = [duringA, duringB].every(sample =>
+    sample.shelfClass && sample.shelfAnimation === "sicklyflash");
+  if (errors.length || before.machineClass || before.machineOpacity !== "0" ||
+      !rampingMachine || !flashingSnacks || !result || after.machineClass || after.shelfClass ||
+      after.machineOpacity !== "0") process.exitCode = 1;
 } else if (process.argv.includes("--rocket-only")) {
   // The rocket's route is authored against the wide canvas but has to read on every
   // one, so it is sampled across the flight and checked for staying over the machine

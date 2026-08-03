@@ -1313,11 +1313,28 @@ body{
 #fxrear,#fxfront{position:absolute;inset:0;pointer-events:none}
 #fxrear{z-index:1;overflow:visible}
 #fxfront{z-index:6;overflow:visible}
-.fx-blood{position:absolute;width:5px;height:13px;border-radius:60% 60% 70% 70%;z-index:8;
+.fx-blood{position:absolute;width:var(--blood-w,7px);height:var(--blood-h,17px);
+  border-radius:60% 60% 70% 70%;z-index:8;transform-origin:50% 0;
   background:linear-gradient(90deg,#3d0205,#a30910 48%,#3b0103);filter:drop-shadow(0 2px 2px #000);
-  animation:blooddrop .72s ease-in forwards}
-@keyframes blooddrop{0%{transform:translateY(0) scaleY(.25);opacity:0}18%{opacity:1}
-  100%{transform:translateY(var(--blood-y,150px)) scaleY(1.25);opacity:.75}}
+  animation:blooddrop var(--blood-dur,.86s) linear forwards}
+/* The strand each drop pulls behind it as it tears away from the package. */
+.fx-blood::after{content:"";position:absolute;left:50%;bottom:58%;width:46%;height:22px;
+  transform:translateX(-50%);border-radius:50% 50% 0 0;
+  background:linear-gradient(180deg,rgba(61,2,5,0),rgba(125,6,13,.75) 62%,#a30910)}
+@keyframes blooddrop{
+  0%{transform:translate(0,0) scaleY(.1);opacity:0;animation-timing-function:ease-out}
+  12%{opacity:1;animation-timing-function:ease-out}
+  /* swell: the drip grows out of the package and hangs there before it tears
+     away. --blood-swell varies per drop, so no two reach the same length. */
+  34%{transform:translate(0,calc(var(--blood-y,150px) * .035)) scaleY(var(--blood-swell,1.3));
+    animation-timing-function:ease-in}
+  /* horizontal lags the fall, so the path bows outward rather than running
+     straight to the final offset */
+  62%{transform:translate(calc(var(--blood-x,0px) * .17),calc(var(--blood-y,150px) * .42))
+    rotate(calc(var(--blood-r,0deg) * .3)) scaleY(calc(var(--blood-swell,1.3) * .9));
+    animation-timing-function:ease-in}
+  100%{transform:translate(var(--blood-x,0px),var(--blood-y,150px))
+    rotate(var(--blood-r,0deg)) scaleY(1.25);opacity:.75}}
 .fx-fright{position:absolute;inset:0;z-index:12;pointer-events:none}
 .fx-fright .eye{position:absolute;top:28%;width:18%;height:19%;border-radius:50%;background:#fff;
   box-shadow:inset 0 0 0 2px #17120f}
@@ -1538,9 +1555,28 @@ body{
   90%{opacity:1;transform:translate(-50%,8px) rotate(-1deg) scale(1)}
   100%{opacity:0;transform:translate(-50%,100px) rotate(4deg) scale(.82)}
 }
-#glass.fx-sickly{animation:sicklyflash .8s ease-in-out 2}
-#glass.fx-sickly-long{animation:sicklyflash 1.15s ease-in-out 5}
-@keyframes sicklyflash{50%{filter:hue-rotate(38deg) saturate(1.6);box-shadow:inset 0 0 36px rgba(92,190,44,.35)}}
+/* The snacks glow, not the pane they sit behind: this rides #shelves so the
+   glass keeps its own dark background and gloss. */
+#shelves.fx-sickly{animation:sicklyflash .8s ease-in-out 2}
+#shelves.fx-sickly-long{animation:sicklyflash 1.15s ease-in-out 7}
+@keyframes sicklyflash{50%{filter:hue-rotate(52deg) saturate(2.4) brightness(1.14)}}
+/* Ramp the cabinet from its normal color through light and dark green while the
+   snacks flash. A blended overlay rather than a filter on
+   #machine: filtering a subtree this large repaints every frame, and it would
+   trap the fixed-position overlays. */
+#machine::before{
+  content:"";position:absolute;inset:0;z-index:70;pointer-events:none;border-radius:inherit;
+  background:radial-gradient(ellipse at 50% 38%,rgba(150,255,72,.62),rgba(38,120,18,.52) 68%);
+  mix-blend-mode:hard-light;opacity:0;will-change:opacity,filter;transform:translateZ(0)}
+#machine.fx-sickly-machine::before{
+  animation:sicklymachineramp var(--sickly-machine-duration,8.05s) linear forwards}
+@keyframes sicklymachineramp{
+  0%{opacity:0;filter:brightness(1.22)}
+  50%{opacity:.62;filter:brightness(1.22)}
+  100%{opacity:.76;filter:brightness(.68)}}
+/* Keep the window above the precomposited wash at all times so starting and
+   stopping the event never changes stacking or forces the machine to redraw. */
+#machine #glass{z-index:71}
 
 /* Rapid strikes across separate areas of the window shatter it and free the snacks. */
 .itemholder.fx-emptied{visibility:hidden}
@@ -1662,6 +1698,8 @@ body{
   .fx-staypuft.on>svg,.fx-staypuft.on>img,.fx-staypuft.on::after{animation:none!important}
   .puft-flames,.puft-smoke{display:none!important}
   .fx-camacho-sign{animation:none!important;opacity:1;transform:translateX(-50%)}
+  #shelves.fx-sickly,#shelves.fx-sickly-long{animation:none!important;
+    filter:hue-rotate(52deg) saturate(2.4) brightness(1.14)}
 }
 
 /* ---------- narrow / mobile ---------- */
