@@ -3,7 +3,8 @@
    persistent random code and, through the achievement catalog, a code award. */
 const SECRET_COMMAND_DEFS={
   "300":{title:"BACHELOR CHOW",texts:["NOW WITH FLAVOR!","MAKES ITS OWN GRAVY!"],event:"rocket",duration:4800},
-  "202":{title:"NUTRITION RECORD",text:"THE LAST CUSTOMER NEVER LEFT",event:"glass",duration:6000},
+  /* 8600 covers the seven 1.15s green pulses with a beat to spare before teardown. */
+  "202":{title:"NUTRITION RECORD",text:"THE LAST CUSTOMER NEVER LEFT",event:"glass",duration:8600},
   "969":{title:"INCIDENT REPORT",text:"THE FOOTSTEPS NUMBER FIVE",event:"ghost",duration:3100},
   "100":{title:"BY THE FIRE AT\nCAMP WAUCONDA",text:"IT BORROWED THE CHOSEN SHAPE",event:"shudder",duration:6000},
   "000":{title:"FOLLOW CARE\nINSTRUCTIONS",text:"IT WAS NEVER FED. IT STILL GREW.",event:"rear",duration:4700},

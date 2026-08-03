@@ -177,14 +177,36 @@ function effectContext(active,slot,holder){
     lcd:(html,ms)=>lcdMsg(html,ms),delay,sfx,glass:glassEl,machine:machineEl,
     fxGlass:fx,fxRear,fxFront};
 }
-function makeDrops(ctx,count=7){
+function makeDrops(ctx,count=14){
   const hr=ctx.holder.getBoundingClientRect(),gr=glassEl.getBoundingClientRect();
+  const left=(hr.left-gr.left)/scale,width=hr.width/scale,inset=width*.08;
+  /* Evenly spread starts, then shuffled, so the drips emerge in a random order
+     instead of sweeping across the package left to right. */
+  const starts=Array.from({length:count},(_,k)=>k*.07+Math.random()*.05);
+  for(let k=starts.length-1;k>0;k--){
+    const j=Math.floor(Math.random()*(k+1));[starts[k],starts[j]]=[starts[j],starts[k]];
+  }
   for(let i=0;i<count;i++){
     const d=document.createElement("i");d.className="fx-blood";
-    d.style.left=((hr.left-gr.left)/scale+hr.width/scale*(.2+i/(count+2)))+"px";
+    const dw=6+Math.random()*5;
+    /* Seep points spread across the bottom edge. The band is measured against
+       the drop's own width so no drip starts hanging off the packaging. */
+    const t=Math.min(1,Math.max(0,(i+.5)/count+(Math.random()-.5)*.05));
+    d.style.left=(left+inset+Math.max(0,width-inset*2-dw)*t)+"px";
     d.style.top=((hr.bottom-gr.top)/scale-7)+"px";
+    d.style.setProperty("--blood-w",dw.toFixed(1)+"px");
+    d.style.setProperty("--blood-h",(15+Math.random()*9).toFixed(1)+"px");
+    /* How far the drip stretches while it still clings to the package, and how
+       long it takes to get there: both vary so they emerge raggedly. */
+    d.style.setProperty("--blood-swell",(.9+Math.random()*.9).toFixed(2));
+    d.style.setProperty("--blood-dur",(.72+Math.random()*.45).toFixed(2)+"s");
     d.style.setProperty("--blood-y",(125+Math.random()*95)+"px");
-    d.style.animationDelay=(i*.12)+"s";ctx.scope.node(fx,d);
+    /* Fan: drops splay away from the centre as they fall, the outermost ones
+       most, so the sheet widens on the way down. */
+    const splay=(t-.5)*2;
+    d.style.setProperty("--blood-x",(splay*(15+Math.random()*13)).toFixed(1)+"px");
+    d.style.setProperty("--blood-r",(splay*(6+Math.random()*6)).toFixed(1)+"deg");
+    d.style.animationDelay=starts[i].toFixed(2)+"s";ctx.scope.node(fx,d);
   }
 }
 function makeCrumbs(ctx,count=11){
@@ -212,7 +234,7 @@ const EFFECTS={
   default:{},
   bachelor:{async preFall(ctx){ctx.vfd("SHUT UP AND","TAKE MY MONEY!");await ctx.delay(1650);}},
   soylent:{async preFall(ctx){
-    makeDrops(ctx);ctx.scope.cls(glassEl,"fx-sickly");await ctx.delay(1250);
+    makeDrops(ctx);await ctx.delay(1250);
     ctx.active.afterRelease=()=>ctx.vfd("YOU'LL LOVE WHAT","IT'S MADE OUT OF",2200);
     ctx.active.postFallDelay=1400;
   }},
@@ -325,7 +347,10 @@ async function runSecretCommand(code){
     const eventDuration=cmd.duration||3700;
     META.commandReplay[cmd.id]=replayCount+1;saveMeta();
     setVFD(vfdTitle,0,1);lcdMsg(loreText,eventDuration-100);sfx.ghost();
-    if(cmd.event==="glass")scope.cls(glassEl,cmd.duration?"fx-sickly-long":"fx-sickly");
+    if(cmd.event==="glass"){
+      scope.cls(shelvesEl,cmd.duration?"fx-sickly-long":"fx-sickly");
+      scope.cls(machineEl,"fx-sickly-machine");
+    }
     if(cmd.event==="shudder"){
       scope.cls(machineEl,"fx-shudder");
       const puftTimer=setTimeout(()=>{
