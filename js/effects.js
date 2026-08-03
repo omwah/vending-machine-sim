@@ -365,8 +365,6 @@ async function runSecretCommand(code){
       const launchTimer=setTimeout(()=>{
         const bay=$("#bay"),br=bay.getBoundingClientRect(),sr=stage.getBoundingClientRect();
         const rocket=document.createElement("div");rocket.className="fx-rocket";
-        rocket.style.left=((br.left-sr.left)/scale+br.width/(2*scale)-112)+"px";
-        rocket.style.top=((br.top-sr.top)/scale+br.height/(2*scale)-55)+"px";
         rocket.innerHTML=`<svg viewBox="0 0 320 150" aria-hidden="true">
           <defs>
             <linearGradient id="peBody" x1="0" y1="0" x2="0" y2="1">
@@ -417,7 +415,19 @@ async function runSecretCommand(code){
           <circle cx="76" cy="48" r="9" fill="#27ad96"/>
           <path d="M70 52l15-12-7 15z" fill="#f2edd0"/>
         </svg>`;
-        scope.node(fxFront,rocket);tone(105,.9,"sawtooth",.055,260);noise(1.2,.04,500);
+        scope.node(fxFront,rocket);
+        /* Centre it on the bay from its own rendered box, so the stylesheet is
+           free to size it per layout mode. Same task as the insertion above, so
+           there is no paint in between to show the pre-positioned frame. */
+        const rw=rocket.offsetWidth,rh=rocket.offsetHeight;
+        const cx=(br.left-sr.left)/scale+br.width/(2*scale);
+        const cy=(br.top-sr.top)/scale+br.height/(2*scale);
+        rocket.style.left=(cx-rw/2)+"px";rocket.style.top=(cy-rh/2)+"px";
+        /* Climb clear of the top of the window rather than the top of the
+           canvas, so the ship is still fully opaque when it leaves the screen. */
+        rocket.style.setProperty("--rocket-rise",
+          (cy+rh+Math.max(0,sr.top)/scale+120).toFixed(1)+"px");
+        tone(105,.9,"sawtooth",.055,260);noise(1.2,.04,500);
       },480);
       scope.cleanups.push(()=>clearTimeout(launchTimer));
     }
