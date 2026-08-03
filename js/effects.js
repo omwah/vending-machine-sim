@@ -232,7 +232,19 @@ function makeCrumbs(ctx,count=11){
 
 const EFFECTS={
   default:{},
-  bachelor:{async preFall(ctx){ctx.vfd("SHUT UP AND","TAKE MY MONEY!");await ctx.delay(1650);}},
+  bachelor:{async preCoil(ctx){
+    const pack=ctx.holder.querySelector(".pk");
+    if(!pack)return;
+    const frost=document.createElement("div");frost.className="fx-frost";
+    frost.innerHTML='<i class="fx-frost-front"></i>';
+    ctx.scope.node(pack,frost);ctx.scope.cls(pack,"fx-freezing");
+    ctx.vfd("FLASH FREEZING…");tone(620,.55,"sine",.025,-260);
+    await ctx.delay(1750);
+    frost.classList.add("done");pack.classList.remove("fx-freezing");ctx.scope.cls(pack,"fx-frozen");
+    ctx.active.afterClone=()=>{
+      frost.remove();pack.classList.remove("fx-freezing","fx-frozen");
+    };
+  }},
   soylent:{async preFall(ctx){
     makeDrops(ctx);await ctx.delay(1250);
     ctx.active.afterRelease=()=>ctx.vfd("YOU'LL LOVE WHAT","IT'S MADE OUT OF",2200);

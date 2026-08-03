@@ -761,6 +761,37 @@ body{
   transform-origin:50% 100%!important
 }
 
+/* Item 101 freezes in its coil before vending. The package clips this surface
+   to its bag silhouette while the reveal edge climbs from bottom to top. */
+.pk.fx-freezing{animation:packagefreeze 1.7s linear forwards}
+.pk.fx-frozen{filter:saturate(.3) brightness(1.13) hue-rotate(168deg)
+  drop-shadow(0 0 5px rgba(192,241,255,.9)) drop-shadow(0 5px 5px rgba(0,0,0,.65))}
+@keyframes packagefreeze{
+  from{filter:saturate(1) brightness(1) hue-rotate(0)
+    drop-shadow(0 5px 5px rgba(0,0,0,.65))}
+  to{filter:saturate(.3) brightness(1.13) hue-rotate(168deg)
+    drop-shadow(0 0 5px rgba(192,241,255,.9)) drop-shadow(0 5px 5px rgba(0,0,0,.65))}}
+.fx-frost{inset:0;z-index:40;pointer-events:none;clip-path:inset(100% 0 0 0);
+  background:
+    radial-gradient(circle at 16% 82%,#fff 0 1.5%,#d9f7ff 2% 4%,transparent 5%),
+    radial-gradient(circle at 72% 69%,#fff 0 1%,#bceeff 2% 4%,transparent 5%),
+    radial-gradient(circle at 38% 47%,#fff 0 1%,#d5f7ff 2% 3.5%,transparent 5%),
+    radial-gradient(circle at 81% 25%,#fff 0 1%,#c4f1ff 2% 3%,transparent 4.5%),
+    repeating-conic-gradient(from 22deg at 28% 76%,rgba(255,255,255,.7) 0 4deg,
+      transparent 5deg 28deg),
+    repeating-conic-gradient(from 8deg at 72% 39%,rgba(219,248,255,.62) 0 3deg,
+      transparent 4deg 25deg),
+    linear-gradient(115deg,rgba(237,252,255,.42),rgba(139,221,248,.7) 48%,rgba(239,253,255,.78));
+  box-shadow:inset 0 0 9px #fff,inset 0 0 18px rgba(112,205,239,.85);
+  animation:frostclimb 1.7s linear forwards}
+.fx-frost-front{left:-4%;right:-4%;top:100%;height:11%;z-index:2;
+  background:linear-gradient(180deg,transparent,rgba(239,253,255,.95) 42%,#fff 66%,transparent);
+  filter:drop-shadow(0 0 4px #c8f4ff);animation:frostfront 1.7s linear forwards}
+.fx-frost.done{clip-path:inset(0);animation:none}
+.fx-frost.done .fx-frost-front{top:-11%;animation:none}
+@keyframes frostclimb{to{clip-path:inset(0)}}
+@keyframes frostfront{to{top:-11%}}
+
 /* --- pillow / chip bag --- */
 .bag{width:100%;height:100%}
 .bag .body{

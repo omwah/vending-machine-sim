@@ -11,6 +11,7 @@
  * Usage:
  *   node tests/browser-test.js file:///absolute/path/to/index.html
  *   node tests/browser-test.js http://127.0.0.1:8765/index.html
+ *   node tests/browser-test.js <url> --frost-only
  *   node tests/browser-test.js <url> --slime-only
  *   node tests/browser-test.js <url> --sickly-only
  *   node tests/browser-test.js <url> --rocket-only
@@ -432,6 +433,53 @@ if (process.argv.includes("--brawndo-only")) {
   if (errors.length || baseline.machineBottom > baseline.viewportHeight ||
       zoomed.machineBottom <= zoomed.viewportHeight || zoomed.scrollHeight <= zoomed.viewportHeight ||
       zoomed.labelCenterDelta > 0.5 || modesInvalid) process.exitCode = 1;
+} else if (process.argv.includes("--frost-only")) {
+  await send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "reduce" }]
+  });
+  await navigate(targetUrl);
+  const started = await evaluate(`(()=>{
+    const item=ITEMS["101"],slot=slotEl("101"),holder=slot.querySelector(".itemholder");
+    window.__frostHolder=holder;window.__frozenFallingClone=false;window.__rearPackageNormal=false;
+    new MutationObserver((records,observer)=>{for(const record of records)for(const node of record.addedNodes){
+      if(!node.matches?.(".itemholder"))continue;
+      const pack=node.querySelector(".pk");
+      window.__frozenFallingClone=pack?.classList.contains("fx-frozen")&&
+        node.querySelector(".fx-frost")?.classList.contains("done");
+      window.__rearPackageNormal=!__frostHolder.querySelector(".fx-frost")&&
+        !__frostHolder.querySelector(".pk").classList.contains("fx-frozen");observer.disconnect();
+    }}).observe(fx,{childList:true});
+    window.__frostVend=vend(item,0);
+    const frost=holder.querySelector(".fx-frost");
+    return {exists:!!frost,clip:frost&&getComputedStyle(frost).clipPath,
+      duration:frost&&getComputedStyle(frost).animationDuration,
+      freezing:holder.querySelector(".pk").classList.contains("fx-freezing"),
+      coilsMoving:slot.querySelectorAll(".coil.spin").length>0};
+  })()`);
+  await delay(700);
+  const climbing = await evaluate(`(()=>{const frost=__frostHolder.querySelector(".fx-frost");return {
+    clip:getComputedStyle(frost).clipPath,done:frost.classList.contains("done"),
+    freezing:__frostHolder.querySelector(".pk").classList.contains("fx-freezing"),
+    coilsMoving:slotEl("101").querySelectorAll(".coil.spin").length>0};})()`);
+  await delay(1200);
+  const frozenBeforeFall = await evaluate(`(()=>{
+    const pack=__frostHolder.querySelector(".pk"),frost=pack.querySelector(".fx-frost");
+    return {frozen:pack.classList.contains("fx-frozen"),freezing:pack.classList.contains("fx-freezing"),
+      frostDone:frost.classList.contains("done"),clip:getComputedStyle(frost).clipPath,
+      coilsMoving:slotEl("101").querySelectorAll(".coil.spin").length>0};
+  })()`);
+  await evaluate(`window.__frostVend`);
+  const finished = await evaluate(`({fallingCloneFrozen:__frozenFallingClone,rearPackageNormal:__rearPackageNormal,
+    cleaned:!__frostHolder.querySelector(".fx-frost")&&
+      !__frostHolder.querySelector(".pk").classList.contains("fx-frozen"),tray:S.trayItem})`);
+  const report = { initial, started, climbing, frozenBeforeFall, finished, errors };
+  console.log(JSON.stringify(report, null, 2));
+  socket.close();
+  if(errors.length || !started.exists || started.duration!=="1.7s" || !started.freezing || started.coilsMoving ||
+      started.clip === climbing.clip || climbing.done || !climbing.freezing || climbing.coilsMoving ||
+      !frozenBeforeFall.frozen || frozenBeforeFall.freezing || !frozenBeforeFall.frostDone ||
+      !frozenBeforeFall.coilsMoving || !finished.fallingCloneFrozen || !finished.rearPackageNormal || !finished.cleaned ||
+      finished.tray!=="101") process.exitCode=1;
 } else if (process.argv.includes("--sickly-only")) {
   await send("Emulation.setEmulatedMedia", {
     features: [{ name: "prefers-reduced-motion", value: "no-preference" }]
@@ -580,7 +628,9 @@ if (process.argv.includes("--brawndo-only")) {
       const slot=slotEl(it.code),holder=slot.querySelector(".itemholder");
       const active={item:it,scope:new EffectScope(),skipPackageFall:false};
       try{
-        await EFFECTS[it.effectId].preFall?.(effectContext(active,slot,holder));
+        const ctx=effectContext(active,slot,holder);
+        await EFFECTS[it.effectId].preCoil?.(ctx);
+        await EFFECTS[it.effectId].preFall?.(ctx);
         results[it.effectId]=it.id==="brawndo"&&active.skipPackageFall?"skipped-package-fall":"ok";
       }
       catch(error){results[it.effectId]=String(error);}
