@@ -94,8 +94,8 @@ function dropGlassShards(){
     shard.style.width=(cellW+1)+"px";shard.style.height=(cellH+1)+"px";
     shard.style.clipPath=half?"polygon(0 0,100% 100%,0 100%)":"polygon(0 0,100% 0,100% 100%)";
     const shardCenter=left+(col+.5)*cellW;
-    const drift=(shardCenter<380?-1:1)*(150+Math.random()*430)+(Math.random()-.5)*70;
-    const fall=1194-(top+row*cellH);
+    const drift=(shardCenter<DW/2?-1:1)*(150+Math.random()*430)+(Math.random()-.5)*70;
+    const fall=DH-16-(top+row*cellH);
     const rotation=(Math.random()>.5?1:-1)*(220+Math.random()*620);
     shard.style.setProperty("--shard-x",drift.toFixed(0)+"px");
     shard.style.setProperty("--shard-y",fall.toFixed(0)+"px");
@@ -119,8 +119,8 @@ function sendSnacksFleeing(){
     let x,y;
     if(direction===0){x=-1250-Math.random()*250;y=-260+Math.random()*520;}
     else if(direction===1){x=1250+Math.random()*250;y=-260+Math.random()*520;}
-    else if(direction===2){x=-320+Math.random()*640;y=-1250-Math.random()*220;}
-    else{x=-380+Math.random()*760;y=1450+Math.random()*220;}
+    else if(direction===2){x=-DW*.42+Math.random()*DW*.84;y=-1250-Math.random()*220;}
+    else{x=-DW/2+Math.random()*DW;y=DH+240+Math.random()*220;}
     clone.style.setProperty("--flee-start-x",(x<0?-18:18)+"px");
     clone.style.setProperty("--flee-x",x.toFixed(0)+"px");clone.style.setProperty("--flee-y",y.toFixed(0)+"px");
     clone.style.setProperty("--flee-r",((Math.random()>.5?1:-1)*(420+Math.random()*760)).toFixed(0)+"deg");
