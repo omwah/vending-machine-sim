@@ -382,12 +382,54 @@ if (process.argv.includes("--brawndo-only")) {
   await evaluate(`pageZoomFactor=()=>1.1;fit()`);
   await delay(250);
   const zoomed = await geometry();
-  const report = { initial, baseline, zoomed, errors };
+
+  // Layout modes. CSS picks the design canvas per breakpoint and fit() reads it
+  // back, so each mode is checked for the canvas it claims, that the machine
+  // fits the width without the page scrolling sideways, and that the controls
+  // land at a usable finger size.
+  const layout = () => evaluate(`(()=>{
+    const key=document.querySelector(".key").getBoundingClientRect();
+    const shelves=document.querySelector("#shelves");
+    return {
+      mode:artMode, canvas:[DW,DH], scale,
+      keySize:Math.min(key.width,key.height),
+      horizontalOverflow:document.documentElement.scrollWidth-innerWidth,
+      shelvesScroll:shelves.scrollHeight>shelves.clientHeight+1,
+      consoleDetached:getComputedStyle(document.querySelector("#console")).display==="contents"
+    };
+  })()`);
+  const modes = {};
+  for (const [name, width, height] of [
+    ["wide", 1440, 1000], ["compact", 390, 844], ["short", 844, 390]
+  ]) {
+    await navigate(targetUrl);
+    await send("Emulation.setDeviceMetricsOverride", {
+      width, height, deviceScaleFactor: 1, mobile: width < 700
+    });
+    await delay(250);
+    modes[name] = await layout();
+  }
+
+  const report = { initial, baseline, zoomed, modes, errors };
   console.log(JSON.stringify(report, null, 2));
   socket.close();
+
+  const modesInvalid =
+    modes.wide.mode !== "wide" || modes.compact.mode !== "compact" || modes.short.mode !== "short" ||
+    // the wide canvas and its stacked/side-by-side arrangements
+    modes.wide.canvas[0] !== 760 || modes.wide.canvas[1] !== 1210 || modes.wide.consoleDetached ||
+    modes.compact.canvas[0] !== 440 || !modes.compact.consoleDetached || modes.short.consoleDetached ||
+    // touch targets: the keypad must clear the 44px guideline on both small canvases
+    modes.compact.keySize < 44 || modes.short.keySize < 44 ||
+    // the short canvas used to collapse to scale ~0.3 under the height term
+    modes.short.scale < 0.9 ||
+    // shelves scroll inside the shortened glass, and nothing overflows sideways
+    !modes.compact.shelvesScroll || !modes.short.shelvesScroll ||
+    Object.values(modes).some(mode => mode.horizontalOverflow > 0);
+
   if (errors.length || baseline.machineBottom > baseline.viewportHeight ||
       zoomed.machineBottom <= zoomed.viewportHeight || zoomed.scrollHeight <= zoomed.viewportHeight ||
-      zoomed.labelCenterDelta > 0.5) process.exitCode = 1;
+      zoomed.labelCenterDelta > 0.5 || modesInvalid) process.exitCode = 1;
 } else if (process.argv.includes("--slime-only")) {
   const report = { initial, slimePainted: await testSlime(), errors };
   console.log(JSON.stringify(report, null, 2));

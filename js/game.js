@@ -421,6 +421,13 @@ SHELVES.forEach((row,ri)=>{
 });
 const slotEl = code => shelvesEl.querySelector(`.slot[data-code="${code}"]`);
 const tagEl  = code => shelvesEl.querySelector(`.tag[data-tag="${code}"]`);
+/* On short canvases the shelves scroll inside the glass, so a selection may sit
+   out of sight. Bring its shelf into view before it lights up or vends. */
+function revealSlot(code){
+  if(shelvesEl.scrollHeight<=shelvesEl.clientHeight+1)return;
+  const slot=slotEl(code);
+  if(slot)slot.scrollIntoView({block:"nearest",behavior:"smooth"});
+}
 
 /* ============================================================
    5. VFD
@@ -761,11 +768,15 @@ function popup(anchor,title,rows,{stayOpen=false}={}){
   const c=document.createElement("button"); c.className="close"; c.textContent="cancel";
   c.onclick=e=>{e.stopPropagation();closePop();}; p.appendChild(c);
   document.body.appendChild(p);
-  const r=anchor.getBoundingClientRect(), pr=p.getBoundingClientRect();
-  let left=r.left-pr.width-12; if(left<8) left=Math.min(r.right+12,innerWidth-pr.width-8);
-  if(left+pr.width>innerWidth-8) left=innerWidth-pr.width-8;
-  let top=Math.min(Math.max(8,r.top),innerHeight-pr.height-8);
-  p.style.left=left+"px"; p.style.top=top+"px";
+  // On the small canvases the stylesheet turns this into a bottom sheet, so
+  // leave its position alone; anchoring would only fight the viewport edges.
+  if(artMode==="wide"){
+    const r=anchor.getBoundingClientRect(), pr=p.getBoundingClientRect();
+    let left=r.left-pr.width-12; if(left<8) left=Math.min(r.right+12,innerWidth-pr.width-8);
+    if(left+pr.width>innerWidth-8) left=innerWidth-pr.width-8;
+    let top=Math.min(Math.max(8,r.top),innerHeight-pr.height-8);
+    p.style.left=left+"px"; p.style.top=top+"px";
+  }
   openPop=p;openPopAnchor=anchor;
 }
 function closePop(){ if(openPop){openPop.remove();openPop=null;openPopAnchor=null;} }
@@ -898,7 +909,7 @@ function keyIn(k){
 }
 function highlight(){
   shelvesEl.querySelectorAll(".tag").forEach(t=>t.classList.remove("active"));
-  if(S.entry.length===3){ const t=tagEl(S.entry); if(t) t.classList.add("active"); }
+  if(S.entry.length===3){ const t=tagEl(S.entry); if(t){ t.classList.add("active"); revealSlot(S.entry); } }
 }
 /* 3 digits typed: show the price / prompt, but wait for OK (like the real thing) */
 function maybeAutoVend(justTyped){
@@ -945,6 +956,7 @@ function doOK(){
 async function vend(it,change){
   setMode("vending");
   setVFD("VENDING…");sfx.motor();
+  revealSlot(it.code);   /* settles well inside the 900ms coil spin below */
   const slot=slotEl(it.code);
   const holder=slot.querySelector(".itemholder");
   const coils=[...slot.querySelectorAll(".coil")];
@@ -1251,7 +1263,18 @@ addEventListener("keydown",e=>{
 /* ============================================================
    14. RESPONSIVE SCALING
    ============================================================ */
-const DW=760, DH=1210;
+/* The design canvas. CSS owns the breakpoints and publishes the canvas for the
+   active layout mode on #stage; these mirror it so the rect math in game.js and
+   effects.js keeps a single screen-px <-> design-px contract per mode. */
+let DW=760, DH=1210, artFitsHeight=true, artMode="wide", artMaxScale=1.35;
+function readArtboard(){
+  const cs=getComputedStyle(stage);
+  DW=parseFloat(cs.getPropertyValue("--art-w"))||760;
+  DH=parseFloat(cs.getPropertyValue("--art-h"))||1210;
+  artFitsHeight=cs.getPropertyValue("--art-fit").trim()!=="width";
+  artMode=cs.getPropertyValue("--art-mode").trim()||"wide";
+  artMaxScale=parseFloat(cs.getPropertyValue("--art-max-scale"))||1.35;
+}
 const BASE_DPR_KEY="vending-machine-base-dpr-v1";
 const NATIVE_DPR_STEPS=[1,1.25,1.5,2,2.5,3,4];
 let baseDevicePixelRatio=window.devicePixelRatio||1;
@@ -1272,6 +1295,7 @@ function pageZoomFactor(){
   return Math.max(.5,Math.min(5,currentDpr/baseDevicePixelRatio));
 }
 function fit(){
+  readArtboard();
   const w=innerWidth, h=innerHeight;
   const narrow = w<820;
   // Reconstruct the unzoomed viewport so 100% starts with the whole machine in
@@ -1280,7 +1304,12 @@ function fit(){
   const pageZoom=pageZoomFactor();
   const layoutW=w*pageZoom,layoutH=h*pageZoom;
   const baseGutter=layoutW<820?14:40;
-  const fullViewScale=Math.min((layoutW-baseGutter)/DW,(layoutH-24)/DH,1.35);
+  // Compact and short-wide canvases are already proportioned for their
+  // viewport, so height stops being a hard constraint there: the machine keeps
+  // a legible size and the page scrolls instead of everything shrinking to fit.
+  const fullViewScale=artFitsHeight
+    ? Math.min((layoutW-baseGutter)/DW,(layoutH-24)/DH,artMaxScale)
+    : Math.min((layoutW-baseGutter)/DW,artMaxScale);
   const widthFit=(w-(narrow?14:40))/DW;
   const s=Math.max(.28,Math.min(fullViewScale,widthFit));
   scale=s;
@@ -1292,6 +1321,7 @@ function fit(){
   $("#room").style.setProperty("--wall-floor-seam",(seamY/h*100).toFixed(2)+"%");
   // Transforms do not contribute their visual size to document layout, so
   // reserve the complete scaled height explicitly to make the machine scroll.
+  // Nothing beyond it: the page ends where the machine does.
   const scrollHeight=used+pad*2+(glassBroken?82:0);
   document.body.style.height = scrollHeight + "px";
   document.body.style.minHeight="100%";
